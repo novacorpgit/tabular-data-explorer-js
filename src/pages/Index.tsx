@@ -1,11 +1,17 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import FileLoader from "@/components/FileLoader";
 import { Button } from "@/components/ui/button";
-import { Download, Plus, Trash } from "lucide-react";
+import { Download, Filter, Plus, Trash } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Sample data for electrical panelboard estimation with tree structure
 const panelboardData = [
@@ -53,6 +59,29 @@ const panelboardData = [
   }
 ];
 
+// Extract unique panel types from data for the dropdown
+const getUniqueTypes = (data) => {
+  const types = new Set();
+  
+  // Extract top-level types
+  data.forEach(item => {
+    if (item.type) {
+      types.add(item.type);
+    }
+    
+    // Extract types from children
+    if (item._children) {
+      item._children.forEach(child => {
+        if (child.type) {
+          types.add(child.type);
+        }
+      });
+    }
+  });
+  
+  return ["All", ...Array.from(types)];
+};
+
 const Index = () => {
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulator = useRef<Tabulator | null>(null);
@@ -60,6 +89,25 @@ const Index = () => {
   const [currentGroupField, setCurrentGroupField] = useState<string>("type");
   const [tableData, setTableData] = useState(panelboardData);
   const [nextId, setNextId] = useState(1000); // For generating new row IDs
+  const [selectedType, setSelectedType] = useState("All");
+  const typeOptions = getUniqueTypes(tableData);
+  
+  // Filter data based on selected type
+  const filterDataByType = (type: string) => {
+    if (type === "All") {
+      return tableData;
+    }
+    
+    if (tabulator.current) {
+      tabulator.current.setFilter("type", "=", type);
+    }
+  };
+  
+  // Handle type selection change
+  const handleTypeChange = (value: string) => {
+    setSelectedType(value);
+    filterDataByType(value);
+  };
 
   // Function to handle data loading from file
   const handleDataLoaded = (data: any[]) => {
@@ -98,6 +146,13 @@ const Index = () => {
   const toggleDisplayMode = (mode: 'tree' | 'group') => {
     setIsTreeMode(mode === 'tree');
     initializeTable(mode === 'tree', tableData);
+    
+    // Reapply type filter after changing display mode
+    if (selectedType !== 'All') {
+      setTimeout(() => {
+        filterDataByType(selectedType);
+      }, 100);
+    }
   };
 
   // Function to add a new row
@@ -141,6 +196,15 @@ const Index = () => {
       });
       
       toast.success(`${selectedRows.length} component(s) deleted`);
+    }
+  };
+
+  // Function to clear all filters
+  const clearFilters = () => {
+    if (tabulator.current) {
+      tabulator.current.clearFilter();
+      setSelectedType("All");
+      toast.info("All filters cleared");
     }
   };
 
@@ -287,6 +351,11 @@ const Index = () => {
           tabulator.current?.deselectRow();
         }
       });
+      
+      // Apply initial type filter if one is selected
+      if (selectedType !== 'All') {
+        filterDataByType(selectedType);
+      }
     }
   };
 
@@ -351,6 +420,30 @@ const Index = () => {
               <FileLoader onDataLoaded={handleDataLoaded} />
             </div>
             
+            {/* Panel Type Filter Dropdown */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold mb-2 text-card-foreground">Filter by Component Type:</h3>
+              <div className="flex items-center gap-2">
+                <div className="w-60">
+                  <Select value={selectedType} onValueChange={handleTypeChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select component type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typeOptions.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={clearFilters} variant="outline" size="sm">
+                  <Filter className="w-4 h-4 mr-1" /> Clear Filters
+                </Button>
+              </div>
+            </div>
+            
             <div className={!isTreeMode ? 'block' : 'opacity-50 pointer-events-none'}>
               <h3 className="font-semibold mb-2 text-card-foreground">Group By:</h3>
               <div className="flex flex-wrap gap-2">
@@ -407,6 +500,10 @@ const Index = () => {
               <li className="flex items-start gap-2">
                 <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Group Mode:</strong> Analyze components by type, voltage, or manufacturer with cost summaries.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
+                <span><strong>Filtering:</strong> Use the dropdown to filter by component type.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
