@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
@@ -19,6 +18,20 @@ const Index = () => {
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulator = useRef<Tabulator | null>(null);
 
+  // Function to handle group toggle event
+  const toggleGroupBy = (field: string) => {
+    if (tabulator.current) {
+      // If table is already grouped by this field, remove grouping
+      const currentGroups = tabulator.current.getGroups();
+      if (currentGroups.length > 0 && currentGroups[0].getField() === field) {
+        tabulator.current.setGroupBy("");
+      } else {
+        // Otherwise, set grouping by the selected field
+        tabulator.current.setGroupBy(field);
+      }
+    }
+  };
+
   useEffect(() => {
     if (tableRef.current) {
       // Initialize Tabulator
@@ -30,6 +43,12 @@ const Index = () => {
         paginationSizeSelector: [5, 10, 20, 50],
         movableColumns: true,
         responsiveLayout: "collapse",
+        // Group configuration
+        groupBy: "gender", // Initial grouping by gender
+        groupHeader: function(value, count) {
+          // Custom header for groups
+          return value + " <span class='text-gray-500'>(" + count + " items)</span>";
+        },
         columns: [
           { title: "ID", field: "id", sorter: "number", headerFilter: true },
           { title: "Name", field: "name", sorter: "string", headerFilter: true },
@@ -63,10 +82,30 @@ const Index = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h1 className="text-3xl font-bold mb-6">Interactive Data Table</h1>
-          <p className="text-gray-600 mb-6">
-            This is an example of a Tabulator table with sorting, filtering, and pagination.
+          <p className="text-gray-600 mb-4">
+            This is an example of a Tabulator table with sorting, filtering, pagination, and grouping.
             Try clicking on column headers to sort, using the filter inputs, or changing the number of rows displayed.
           </p>
+          
+          <div className="mb-4 flex flex-wrap gap-2">
+            <h3 className="w-full font-semibold mb-1">Group By:</h3>
+            <button 
+              onClick={() => toggleGroupBy("gender")} 
+              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+              Gender
+            </button>
+            <button 
+              onClick={() => toggleGroupBy("city")} 
+              className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+              City
+            </button>
+            <button 
+              onClick={() => toggleGroupBy("")} 
+              className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+              Clear Grouping
+            </button>
+          </div>
+          
           <div ref={tableRef} className="mt-4"></div>
         </div>
       </div>
