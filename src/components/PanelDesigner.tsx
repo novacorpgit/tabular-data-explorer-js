@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -12,13 +12,55 @@ import ReactFlow, {
   Connection,
   XYPosition,
   OnConnectStartParams,
-  NodeTypes
+  NodeTypes,
+  Node
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ComponentLibrary, { Component } from './ComponentLibrary';
 import ResizableEnclosure from './ResizableEnclosure';
 import DraggableComponent from './DraggableComponent';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
+// Helper function to check if a component is inside an enclosure
+const isInsideEnclosure = (component: Node, enclosure: Node): boolean => {
+  if (!enclosure.style || !component.position) return false;
+  
+  const encWidth = enclosure.style.width as number;
+  const encHeight = enclosure.style.height as number;
+  const encX = enclosure.position.x;
+  const encY = enclosure.position.y;
+  
+  // Get component dimensions
+  const compWidth = component.data.dimensions?.width || 80;
+  const compHeight = component.data.dimensions?.height || 80;
+  const compX = component.position.x;
+  const compY = component.position.y;
+  
+  // Check if component is fully inside the enclosure
+  return (
+    compX >= encX && 
+    compY >= encY && 
+    compX + compWidth <= encX + encWidth && 
+    compY + compHeight <= encY + encHeight
+  );
+};
+
+// Helper function to check if two components overlap
+const doComponentsOverlap = (comp1: Node, comp2: Node): boolean => {
+  const comp1Width = comp1.data.dimensions?.width || 80;
+  const comp1Height = comp1.data.dimensions?.height || 80;
+  const comp2Width = comp2.data.dimensions?.width || 80;
+  const comp2Height = comp2.data.dimensions?.height || 80;
+  
+  // Check if there's no overlap (one is to the left/right/top/bottom of the other)
+  return !(
+    comp1.position.x + comp1Width < comp2.position.x ||
+    comp2.position.x + comp2Width < comp1.position.x ||
+    comp1.position.y + comp1Height < comp2.position.y ||
+    comp2.position.y + comp2Height < comp1.position.y
+  );
+};
 
 const PanelDesigner = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -27,6 +69,8 @@ const PanelDesigner = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [enclosures, setEnclosures] = useState<any[]>([]);
   const [showDimensions, setShowDimensions] = useState(false);
+  const [overlappingComponents, setOverlappingComponents] = useState<string[]>([]);
+  const [componentsOutsideEnclosure, setComponentsOutsideEnclosure] = useState<string[]>([]);
   
   // Define node types
   const nodeTypes: NodeTypes = {
@@ -44,7 +88,8 @@ const PanelDesigner = () => {
       type: 'enclosure',
       position: { x: 100, y: 100 },
       style: { width: 300, height: 400 },
-      data: { label: `Panel ${enclosures.length + 1}` }
+      data: { label: `Panel ${enclosures.length + 1}` },
+      zIndex: 0 // Ensure enclosures are behind components
     };
     
     setNodes((nds) => [...nds, newEnclosure]);
@@ -84,12 +129,100 @@ const PanelDesigner = () => {
           image: component.image,
           dimensions: component.dimensions,
         },
+        zIndex: 1 // Ensure components are on top of enclosures
       };
+
+      // Check if the component is being dropped inside an enclosure
+      const insideAnyEnclosure = enclosures.some(enc => 
+        isInsideEnclosure({...newNode, position: position} as Node, enc)
+      );
+
+      if (!insideAnyEnclosure) {
+        toast.error('Components must be placed inside an enclosure!');
+        return;
+      }
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, setNodes]
+    [reactFlowInstance, setNodes, enclosures]
   );
+
+  // Function to check component positions and overlaps
+  const checkComponentPositions = useCallback(() => {
+    const componentNodes = nodes.filter(node => node.type === 'component');
+    const enclosureNodes = nodes.filter(node => node.type === 'enclosure');
+    
+    // Check components outside enclosures
+    const outsideComponents: string[] = [];
+    componentNodes.forEach(comp => {
+      const insideAnyEnclosure = enclosureNodes.some(enc => isInsideEnclosure(comp, enc));
+      if (!insideAnyEnclosure) {
+        outsideComponents.push(comp.id);
+      }
+    });
+    setComponentsOutsideEnclosure(outsideComponents);
+    
+    // Check overlapping components
+    const overlapping: string[] = [];
+    for (let i = 0; i < componentNodes.length; i++) {
+      for (let j = i + 1; j < componentNodes.length; j++) {
+        if (doComponentsOverlap(componentNodes[i], componentNodes[j])) {
+          overlapping.push(componentNodes[i].id, componentNodes[j].id);
+        }
+      }
+    }
+    setOverlappingComponents([...new Set(overlapping)]);
+    
+    // Apply visual indicators by updating node data
+    setNodes(prevNodes => 
+      prevNodes.map(node => {
+        if (node.type !== 'component') return node;
+        
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            isOutsideEnclosure: outsideComponents.includes(node.id),
+            isOverlapping: overlapping.includes(node.id),
+          }
+        };
+      })
+    );
+    
+  }, [nodes, setNodes]);
+
+  // Run checks when nodes change
+  useEffect(() => {
+    checkComponentPositions();
+  }, [nodes, checkComponentPositions]);
+
+  // When component is moved, check if it's outside an enclosure
+  const onNodeDragStop = useCallback((event: any, node: Node) => {
+    if (node.type === 'component') {
+      const insideAnyEnclosure = enclosures.some(enc => isInsideEnclosure(node, enc));
+      
+      if (!insideAnyEnclosure) {
+        toast.error('Components must be placed inside an enclosure!');
+        // Move component back inside the closest enclosure
+        if (enclosures.length > 0) {
+          const closestEnclosure = enclosures[0]; // Simple solution: put it in the first enclosure
+          setNodes(nds => 
+            nds.map(n => 
+              n.id === node.id 
+                ? {
+                    ...n,
+                    position: {
+                      x: closestEnclosure.position.x + 50,
+                      y: closestEnclosure.position.y + 50
+                    }
+                  }
+                : n
+            )
+          );
+        }
+      }
+    }
+  }, [enclosures, setNodes]);
 
   return (
     <div className="w-full h-[calc(100vh-4rem)] flex">
@@ -107,6 +240,7 @@ const PanelDesigner = () => {
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeDragStop={onNodeDragStop}
             fitView
             snapToGrid
             snapGrid={[20, 20]}

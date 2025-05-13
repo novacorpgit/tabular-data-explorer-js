@@ -10,13 +10,22 @@ interface DraggableComponentProps extends NodeProps {
       width: number;
       height: number;
     };
+    isOutsideEnclosure?: boolean;
+    isOverlapping?: boolean;
   };
 }
 
 const DraggableComponent = ({ data }: DraggableComponentProps) => {
+  // Determine border style based on component status
+  const getBorderStyle = () => {
+    if (data.isOutsideEnclosure) return 'border-red-500 border-2';
+    if (data.isOverlapping) return 'border-orange-400 border-2';
+    return 'border-gray-300';
+  };
+
   return (
     <div 
-      className="relative bg-white border border-gray-300 rounded shadow-sm"
+      className={`relative bg-white border rounded shadow-sm ${getBorderStyle()}`}
       style={{
         width: data.dimensions?.width || 80, 
         height: data.dimensions?.height || 80
@@ -39,6 +48,18 @@ const DraggableComponent = ({ data }: DraggableComponentProps) => {
           {data.name}
         </div>
       </div>
+      
+      {data.isOverlapping && (
+        <div className="absolute -top-6 left-0 right-0 text-xs font-bold text-center bg-orange-400 text-white px-1 py-0.5 rounded-t-md">
+          Overlap detected
+        </div>
+      )}
+      
+      {data.isOutsideEnclosure && (
+        <div className="absolute -top-6 left-0 right-0 text-xs font-bold text-center bg-red-500 text-white px-1 py-0.5 rounded-t-md">
+          Outside enclosure
+        </div>
+      )}
     </div>
   );
 };

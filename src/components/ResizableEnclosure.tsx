@@ -92,7 +92,8 @@ const ResizableEnclosure = ({ data, selected }: NodeProps) => {
       style={{
         width: size.width,
         height: size.height,
-        cursor: resizing ? `${resizeDirection}-resize` : 'move'
+        cursor: resizing ? `${resizeDirection}-resize` : 'move',
+        zIndex: 0 // Ensure enclosure stays behind components
       }}
     >
       <Handle type="source" position={Position.Top} id="top" />
