@@ -1,9 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
-type Component = {
+export type Component = {
   id: string;
   name: string;
   category: string;
@@ -11,7 +15,7 @@ type Component = {
   dimensions: { width: number; height: number };
 };
 
-const components: Component[] = [
+const initialComponents: Component[] = [
   {
     id: 'breaker-1',
     name: 'Circuit Breaker 1P',
@@ -50,11 +54,27 @@ const components: Component[] = [
 ];
 
 const ComponentLibrary = () => {
+  const [components, setComponents] = useState(initialComponents);
+  const [editingComponent, setEditingComponent] = useState<Component | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  
   const categories = [...new Set(components.map(c => c.category))];
 
   const onDragStart = (event: React.DragEvent, component: Component) => {
     event.dataTransfer.setData('application/reactflow', JSON.stringify(component));
     event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleUpdateImage = () => {
+    if (editingComponent && imageUrl) {
+      setComponents(components.map(comp => 
+        comp.id === editingComponent.id 
+          ? { ...comp, image: imageUrl } 
+          : comp
+      ));
+      setEditingComponent(null);
+      setImageUrl('');
+    }
   };
 
   return (
@@ -83,12 +103,54 @@ const ComponentLibrary = () => {
                       draggable
                       onDragStart={(e) => onDragStart(e, component)}
                     >
-                      <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center mr-3">
+                      <div className="relative w-12 h-12 bg-gray-200 rounded flex items-center justify-center mr-3">
                         <img 
                           src={component.image} 
                           alt={component.name}
                           className="max-w-full max-h-full"
                         />
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="absolute -top-2 -right-2 h-5 w-5 p-0 rounded-full"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingComponent(component);
+                              }}
+                            >
+                              ✎
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Update Component Image</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4 py-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="image">Image URL</Label>
+                                <Input 
+                                  id="image" 
+                                  value={imageUrl} 
+                                  onChange={(e) => setImageUrl(e.target.value)}
+                                  placeholder="https://example.com/component.png"
+                                />
+                              </div>
+                              <div className="flex justify-end space-x-2">
+                                <Button 
+                                  variant="outline" 
+                                  onClick={() => setImageUrl('')}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button onClick={handleUpdateImage}>
+                                  Update Image
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                       <div>
                         <p className="font-medium text-sm">{component.name}</p>

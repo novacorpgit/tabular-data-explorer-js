@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -9,18 +9,30 @@ import ReactFlow, {
   useEdgesState,
   addEdge,
   Panel,
-  Connection
+  Connection,
+  XYPosition,
+  OnConnectStartParams,
+  NodeTypes
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import ComponentLibrary from './ComponentLibrary';
+import ComponentLibrary, { Component } from './ComponentLibrary';
 import ResizableEnclosure from './ResizableEnclosure';
+import DraggableComponent from './DraggableComponent';
 import { Button } from '@/components/ui/button';
 
 const PanelDesigner = () => {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [enclosures, setEnclosures] = useState([]);
+  const [enclosures, setEnclosures] = useState<any[]>([]);
   const [showDimensions, setShowDimensions] = useState(false);
+  
+  // Define node types
+  const nodeTypes: NodeTypes = {
+    enclosure: ResizableEnclosure,
+    component: DraggableComponent
+  };
   
   const onConnect = useCallback((params: Connection) => 
     setEdges((eds) => addEdge(params, eds)), [setEdges]);
@@ -39,12 +51,52 @@ const PanelDesigner = () => {
     setEnclosures((enc) => [...enc, newEnclosure]);
   };
 
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+
+      const reactFlowBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      const componentData = event.dataTransfer.getData('application/reactflow');
+      
+      if (!componentData || !reactFlowBounds || !reactFlowInstance) {
+        return;
+      }
+
+      const component = JSON.parse(componentData) as Component;
+      
+      // Calculate position of the drop
+      const position = reactFlowInstance.screenToFlowPosition({
+        x: event.clientX - reactFlowBounds.left,
+        y: event.clientY - reactFlowBounds.top,
+      });
+
+      const newNode = {
+        id: `${component.id}-${Math.floor(Math.random() * 10000)}`,
+        type: 'component',
+        position,
+        data: {
+          name: component.name,
+          image: component.image,
+          dimensions: component.dimensions,
+        },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+    },
+    [reactFlowInstance, setNodes]
+  );
+
   return (
     <div className="w-full h-[calc(100vh-4rem)] flex">
       <div className="w-1/6 border-r border-gray-200 p-4 overflow-y-auto">
         <ComponentLibrary />
       </div>
-      <div className="w-5/6 relative">
+      <div className="w-5/6 relative" ref={reactFlowWrapper}>
         <ReactFlowProvider>
           <ReactFlow
             nodes={nodes}
@@ -52,10 +104,13 @@ const PanelDesigner = () => {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onInit={setReactFlowInstance}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
             fitView
             snapToGrid
             snapGrid={[20, 20]}
-            nodeTypes={{ enclosure: ResizableEnclosure }}
+            nodeTypes={nodeTypes}
           >
             <Background color="#aaa" gap={20} />
             <Controls />
