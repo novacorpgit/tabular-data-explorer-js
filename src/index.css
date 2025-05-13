@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -98,4 +99,61 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Tabulator Custom Theme Overrides */
+.tabulator {
+  @apply border border-gray-200 rounded-md overflow-hidden;
+}
+
+.tabulator-header {
+  @apply bg-gray-100 border-b border-gray-200;
+}
+
+.tabulator-header .tabulator-col {
+  @apply bg-gray-100 border-r border-gray-200 py-3 font-medium;
+}
+
+.tabulator-row {
+  @apply border-b border-gray-200;
+}
+
+.tabulator-row.tabulator-row-even {
+  @apply bg-white;
+}
+
+.tabulator-row.tabulator-row-odd {
+  @apply bg-gray-50;
+}
+
+.tabulator-row.tabulator-selected {
+  @apply bg-blue-100;
+}
+
+.tabulator-row:hover {
+  @apply bg-blue-50;
+}
+
+.tabulator-footer {
+  @apply bg-gray-100 border-t border-gray-200 py-2 px-4;
+}
+
+.tabulator-paginator {
+  @apply text-sm;
+}
+
+.tabulator-page {
+  @apply px-3 py-1 mx-1 rounded border border-gray-300 hover:bg-gray-200 transition-colors;
+}
+
+.tabulator-page.active {
+  @apply bg-blue-500 text-white border-blue-500 hover:bg-blue-600;
+}
+
+.tabulator-footer .tabulator-paginator .tabulator-page {
+  @apply text-gray-700;
+}
+
+.tabulator-footer .tabulator-paginator .tabulator-page.active {
+  @apply text-white;
 }
