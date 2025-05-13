@@ -63,21 +63,20 @@ const panelboardData = [
 const getUniqueTypes = (data: any[]): string[] => {
   const types = new Set<string>();
   
-  // Extract top-level types
-  data.forEach(item => {
+  // Function to recursively process items and their children
+  const processItem = (item: any) => {
     if (item.type) {
       types.add(item.type);
     }
     
-    // Extract types from children
-    if (item._children) {
-      item._children.forEach(child => {
-        if (child.type) {
-          types.add(child.type);
-        }
-      });
+    // Process children if they exist
+    if (item._children && Array.isArray(item._children)) {
+      item._children.forEach((child: any) => processItem(child));
     }
-  });
+  };
+  
+  // Process all top-level items
+  data.forEach(item => processItem(item));
   
   return ["All", ...Array.from(types)];
 };
@@ -100,23 +99,37 @@ const Index = () => {
       tabulator.current.clearFilter();
     } else {
       // Apply filter correctly using the Tabulator API
-      tabulator.current.setFilter("type", "=", type);
+      // Use a custom filter function to handle nested data
+      tabulator.current.setFilter(function(data: any) {
+        // Check if this row matches the filter directly
+        if (data.type === type) return true;
+        
+        // For parent rows in tree mode, check if any children match
+        if (data._children) {
+          // Recursively check if any child matches the filter
+          const checkChildren = (children: any[]): boolean => {
+            for (const child of children) {
+              if (child.type === type) return true;
+              if (child._children && checkChildren(child._children)) return true;
+            }
+            return false;
+          };
+          
+          return checkChildren(data._children);
+        }
+        
+        return false;
+      });
     }
-    
-    // Store the selected type for later use if table is reinitialized
-    setSelectedType(type);
   };
   
   // Handle type selection change
   const handleTypeChange = (value: string) => {
     setSelectedType(value);
     
-    // Make sure filtering happens after tabulator is ready
+    // Apply filter after tabulator is ready
     if (tabulator.current) {
       filterDataByType(value);
-    } else {
-      // If tabulator isn't ready yet, we'll apply the filter once it initializes
-      console.log("Tabulator not ready yet, filter will be applied on initialization");
     }
   };
 
@@ -157,6 +170,13 @@ const Index = () => {
   const toggleDisplayMode = (mode: 'tree' | 'group') => {
     setIsTreeMode(mode === 'tree');
     initializeTable(mode === 'tree', tableData);
+    
+    // Reapply filter after mode change with a short delay to ensure table is ready
+    setTimeout(() => {
+      if (tabulator.current && selectedType !== 'All') {
+        filterDataByType(selectedType);
+      }
+    }, 100);
   };
 
   // Function to add a new row
@@ -449,7 +469,7 @@ const Index = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={clearFilters} variant="outline" size="sm">
+                <Button onClick={() => handleTypeChange('All')} variant="outline" size="sm">
                   <Filter className="w-4 h-4 mr-1" /> Clear Filters
                 </Button>
               </div>
