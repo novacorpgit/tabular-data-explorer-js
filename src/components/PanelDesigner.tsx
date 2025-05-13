@@ -23,6 +23,23 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
+// Helper function to check if a position is inside an enclosure
+const isPositionInsideEnclosure = (position: XYPosition, enclosure: Node): boolean => {
+  if (!enclosure.style) return false;
+  
+  const encWidth = enclosure.style.width as number;
+  const encHeight = enclosure.style.height as number;
+  const encX = enclosure.position.x;
+  const encY = enclosure.position.y;
+  
+  return (
+    position.x >= encX && 
+    position.y >= encY && 
+    position.x <= encX + encWidth && 
+    position.y <= encY + encHeight
+  );
+};
+
 // Helper function to check if a component is inside an enclosure
 const isInsideEnclosure = (component: Node, enclosure: Node): boolean => {
   if (!enclosure.style || !component.position) return false;
@@ -228,12 +245,12 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
 };
 
 // Helper component to render snap lines
-const SnapLine = ({ line }) => {
+const SnapLine = ({ line }: { line: any }) => {
   const style: CSSProperties = {
     position: 'absolute',
     backgroundColor: '#ff0072',
     zIndex: 999,
-    pointerEvents: 'none' as 'none',
+    pointerEvents: 'none',
   };
 
   if (line.type === 'horizontal') {
@@ -294,7 +311,7 @@ const PanelDesigner = () => {
       position: { x: 100, y: 100 },
       style: { width: 300, height: 400 },
       data: { label: `Panel ${enclosures.length + 1}` },
-      zIndex: 0 // Ensure enclosures are behind components
+      zIndex: 0, // Ensure enclosures are behind components
     };
     
     setNodes((nds) => [...nds, newEnclosure]);
@@ -325,39 +342,47 @@ const PanelDesigner = () => {
         y: event.clientY - reactFlowBounds.top,
       });
 
+      // Find enclosure that contains this position
+      let parentId = undefined;
+      let targetEnclosure = null;
+      
+      for (const enclosure of enclosures) {
+        if (isPositionInsideEnclosure(position, enclosure)) {
+          parentId = enclosure.id;
+          targetEnclosure = enclosure;
+          break;
+        }
+      }
+
+      // Only prompt for enclosure if error checking is enabled
+      if (errorCheckingEnabled && !parentId && enclosures.length > 0) {
+        toast.error('Components must be placed inside an enclosure!');
+        // Use the first enclosure as default
+        parentId = enclosures[0].id;
+        targetEnclosure = enclosures[0];
+      } else if (enclosures.length === 0) {
+        toast.error('Please add an enclosure first before adding components!');
+        return;
+      }
+
       const newNode = {
         id: `${component.id}-${Math.floor(Math.random() * 10000)}`,
         type: 'component',
-        position,
+        position: targetEnclosure ? {
+          // Position relative to the parent when using parentId
+          x: position.x - targetEnclosure.position.x,
+          y: position.y - targetEnclosure.position.y
+        } : position,
         data: {
           name: component.name,
           image: component.image,
           dimensions: component.dimensions,
         },
-        draggable: true, // Make sure components are draggable
+        parentId, // Set the parent ID to create the relationship
+        extent: 'parent', // Keep node within parent boundaries
+        draggable: true,
         zIndex: 1 // Ensure components are on top of enclosures
       };
-
-      // Only do the enclosure check if error checking is enabled
-      if (errorCheckingEnabled) {
-        // Check if the component is being dropped inside an enclosure
-        const insideAnyEnclosure = enclosures.some(enc => 
-          isInsideEnclosure({...newNode, position: position} as Node, enc)
-        );
-
-        if (!insideAnyEnclosure && enclosures.length > 0) {
-          toast.error('Components must be placed inside an enclosure!');
-          // Try to position the component inside the first enclosure
-          const firstEnclosure = enclosures[0];
-          newNode.position = {
-            x: firstEnclosure.position.x + 20,
-            y: firstEnclosure.position.y + 50
-          };
-        } else if (enclosures.length === 0) {
-          toast.error('Please add an enclosure first before adding components!');
-          return;
-        }
-      }
 
       setNodes((nds) => nds.concat(newNode));
     },
@@ -391,17 +416,6 @@ const PanelDesigner = () => {
     }
     
     const componentNodes = nodes.filter(node => node.type === 'component');
-    const enclosureNodes = nodes.filter(node => node.type === 'enclosure');
-    
-    // Check components outside enclosures
-    const outsideComponents: string[] = [];
-    componentNodes.forEach(comp => {
-      const insideAnyEnclosure = enclosureNodes.some(enc => isInsideEnclosure(comp, enc));
-      if (!insideAnyEnclosure) {
-        outsideComponents.push(comp.id);
-      }
-    });
-    setComponentsOutsideEnclosure(outsideComponents);
     
     // Check overlapping components
     const overlapping: string[] = [];
@@ -427,7 +441,6 @@ const PanelDesigner = () => {
           ...node,
           data: {
             ...node.data,
-            isOutsideEnclosure: outsideComponents.includes(node.id),
             isOverlapping: overlapping.includes(node.id),
             intersections: newIntersections.find(i => i.id === node.id)?.intersections || []
           }
@@ -457,59 +470,12 @@ const PanelDesigner = () => {
     }
   }, [nodes]);
 
-  // When component is moved, check if it's outside an enclosure
+  // When drag stops
   const onNodeDragStop = useCallback((event: any, node: Node) => {
     // Clear snap lines when drag ends
     setSnapLines([]);
     setDraggingNodeId(null);
-    
-    if (node.type === 'component' && errorCheckingEnabled) {
-      const insideAnyEnclosure = enclosures.some(enc => isInsideEnclosure(node, enc));
-      
-      if (!insideAnyEnclosure) {
-        toast.error('Components must be placed inside an enclosure!');
-        // Move component back inside the closest enclosure
-        if (enclosures.length > 0) {
-          // Find the closest enclosure
-          let closestEnclosure = enclosures[0];
-          let closestDistance = Number.MAX_VALUE;
-          
-          enclosures.forEach(enc => {
-            const dx = node.position.x - enc.position.x;
-            const dy = node.position.y - enc.position.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < closestDistance) {
-              closestDistance = distance;
-              closestEnclosure = enc;
-            }
-          });
-          
-          // Calculate a safe position within the closest enclosure
-          const safeX = Math.min(
-            Math.max(node.position.x, closestEnclosure.position.x + 10),
-            closestEnclosure.position.x + (closestEnclosure.style?.width as number) - 100
-          );
-          
-          const safeY = Math.min(
-            Math.max(node.position.y, closestEnclosure.position.y + 10),
-            closestEnclosure.position.y + (closestEnclosure.style?.height as number) - 100
-          );
-          
-          setNodes(nds => 
-            nds.map(n => 
-              n.id === node.id 
-                ? {
-                    ...n,
-                    position: { x: safeX, y: safeY }
-                  }
-                : n
-            )
-          );
-        }
-      }
-    }
-  }, [enclosures, setNodes, errorCheckingEnabled]);
+  }, []);
 
   const toggleErrorChecking = () => {
     setErrorCheckingEnabled(!errorCheckingEnabled);

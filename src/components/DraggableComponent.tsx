@@ -56,12 +56,6 @@ const DraggableComponent = ({ data, id }: DraggableComponentProps) => {
         </div>
       )}
       
-      {data.isOutsideEnclosure && (
-        <div className="absolute -top-6 left-0 right-0 text-xs font-bold text-center bg-red-500 text-white px-1 py-0.5 rounded-t-md">
-          Outside enclosure
-        </div>
-      )}
-
       {/* Render intersection points */}
       {data.intersections && data.intersections.map((intersection, index) => (
         <div 
