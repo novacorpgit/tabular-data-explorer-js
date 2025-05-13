@@ -62,6 +62,68 @@ const doComponentsOverlap = (comp1: Node, comp2: Node): boolean => {
   );
 };
 
+// Calculate the intersection points between components
+const getIntersections = (nodes: Node[]) => {
+  const componentNodes = nodes.filter(node => node.type === 'component');
+  const intersections: Array<{ id: string; intersections: Array<{ id: string; x: number; y: number }> }> = [];
+
+  // Create a map to track nodes by their ID for easier lookups
+  const nodeMap = new Map<string, Node>();
+  componentNodes.forEach(node => {
+    nodeMap.set(node.id, node);
+  });
+
+  // Find intersections between all component pairs
+  for (let i = 0; i < componentNodes.length; i++) {
+    const node1 = componentNodes[i];
+    const intersectionPoints = [];
+
+    for (let j = 0; j < componentNodes.length; j++) {
+      if (i !== j) {
+        const node2 = componentNodes[j];
+        
+        if (doComponentsOverlap(node1, node2)) {
+          // Calculate intersection point (center of the intersection area)
+          const n1x1 = node1.position.x;
+          const n1y1 = node1.position.y;
+          const n1x2 = n1x1 + (node1.data.dimensions?.width || 80);
+          const n1y2 = n1y1 + (node1.data.dimensions?.height || 80);
+          
+          const n2x1 = node2.position.x;
+          const n2y1 = node2.position.y;
+          const n2x2 = n2x1 + (node2.data.dimensions?.width || 80);
+          const n2y2 = n2y1 + (node2.data.dimensions?.height || 80);
+          
+          // Calculate the intersection rectangle
+          const ix1 = Math.max(n1x1, n2x1);
+          const iy1 = Math.max(n1y1, n2y1);
+          const ix2 = Math.min(n1x2, n2x2);
+          const iy2 = Math.min(n1y2, n2y2);
+          
+          // Calculate center of intersection area
+          const x = ix1 + (ix2 - ix1) / 2;
+          const y = iy1 + (iy2 - iy1) / 2;
+          
+          intersectionPoints.push({
+            id: node2.id,
+            x,
+            y
+          });
+        }
+      }
+    }
+
+    if (intersectionPoints.length > 0) {
+      intersections.push({
+        id: node1.id,
+        intersections: intersectionPoints
+      });
+    }
+  }
+
+  return intersections;
+};
+
 const PanelDesigner = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -71,6 +133,7 @@ const PanelDesigner = () => {
   const [showDimensions, setShowDimensions] = useState(false);
   const [overlappingComponents, setOverlappingComponents] = useState<string[]>([]);
   const [componentsOutsideEnclosure, setComponentsOutsideEnclosure] = useState<string[]>([]);
+  const [intersections, setIntersections] = useState<Array<{ id: string; intersections: Array<{ id: string; x: number; y: number }> }>>([]);
   
   // Define node types
   const nodeTypes: NodeTypes = {
@@ -182,6 +245,10 @@ const PanelDesigner = () => {
     }
     setOverlappingComponents([...new Set(overlapping)]);
     
+    // Calculate intersections
+    const newIntersections = getIntersections(nodes);
+    setIntersections(newIntersections);
+    
     // Apply visual indicators by updating node data
     setNodes(prevNodes => 
       prevNodes.map(node => {
@@ -193,6 +260,7 @@ const PanelDesigner = () => {
             ...node.data,
             isOutsideEnclosure: outsideComponents.includes(node.id),
             isOverlapping: overlapping.includes(node.id),
+            intersections: newIntersections.find(i => i.id === node.id)?.intersections || []
           }
         };
       })

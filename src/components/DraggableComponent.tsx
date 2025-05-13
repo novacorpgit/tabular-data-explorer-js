@@ -12,10 +12,11 @@ interface DraggableComponentProps extends NodeProps {
     };
     isOutsideEnclosure?: boolean;
     isOverlapping?: boolean;
+    intersections?: Array<{ id: string; x: number; y: number }>;
   };
 }
 
-const DraggableComponent = ({ data }: DraggableComponentProps) => {
+const DraggableComponent = ({ data, id }: DraggableComponentProps) => {
   // Determine border style based on component status
   const getBorderStyle = () => {
     if (data.isOutsideEnclosure) return 'border-red-500 border-2';
@@ -60,6 +61,19 @@ const DraggableComponent = ({ data }: DraggableComponentProps) => {
           Outside enclosure
         </div>
       )}
+
+      {/* Render intersection points */}
+      {data.intersections && data.intersections.map((intersection, index) => (
+        <div 
+          key={`${id}-${intersection.id}-${index}`}
+          className="absolute w-3 h-3 bg-red-500 rounded-full border-2 border-white z-10"
+          style={{
+            left: intersection.x - 6, // Adjust for dot size
+            top: intersection.y - 6,  // Adjust for dot size
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
+      ))}
     </div>
   );
 };
