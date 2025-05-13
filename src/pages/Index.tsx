@@ -94,19 +94,30 @@ const Index = () => {
   
   // Filter data based on selected type
   const filterDataByType = (type: string) => {
-    if (type === "All") {
-      return tableData;
-    }
+    if (!tabulator.current) return;
     
-    if (tabulator.current) {
+    if (type === "All") {
+      tabulator.current.clearFilter();
+    } else {
+      // Apply filter correctly using the Tabulator API
       tabulator.current.setFilter("type", "=", type);
     }
+    
+    // Store the selected type for later use if table is reinitialized
+    setSelectedType(type);
   };
   
   // Handle type selection change
   const handleTypeChange = (value: string) => {
     setSelectedType(value);
-    filterDataByType(value);
+    
+    // Make sure filtering happens after tabulator is ready
+    if (tabulator.current) {
+      filterDataByType(value);
+    } else {
+      // If tabulator isn't ready yet, we'll apply the filter once it initializes
+      console.log("Tabulator not ready yet, filter will be applied on initialization");
+    }
   };
 
   // Function to handle data loading from file
@@ -146,13 +157,6 @@ const Index = () => {
   const toggleDisplayMode = (mode: 'tree' | 'group') => {
     setIsTreeMode(mode === 'tree');
     initializeTable(mode === 'tree', tableData);
-    
-    // Reapply type filter after changing display mode
-    if (selectedType !== 'All') {
-      setTimeout(() => {
-        filterDataByType(selectedType);
-      }, 100);
-    }
   };
 
   // Function to add a new row
@@ -356,6 +360,13 @@ const Index = () => {
       if (selectedType !== 'All') {
         filterDataByType(selectedType);
       }
+      
+      // Important: Apply the current filter after table is initialized
+      tabulator.current.on("tableBuilt", function() {
+        if (selectedType !== 'All') {
+          filterDataByType(selectedType);
+        }
+      });
     }
   };
 
