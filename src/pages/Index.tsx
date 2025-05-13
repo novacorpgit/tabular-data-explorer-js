@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
@@ -211,62 +210,6 @@ const Index = () => {
         }
       ];
 
-      // Custom CSS for a more beautiful table
-      const customCSS = document.createElement('style');
-      customCSS.innerHTML = `
-        .tabulator {
-          border-radius: 8px !important;
-          overflow: hidden !important;
-          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-          border: none !important;
-        }
-        .tabulator-header {
-          background-color: #f9fafb !important;
-          border-bottom: 2px solid #e5e7eb !important;
-        }
-        .tabulator-row.tabulator-row-even {
-          background-color: #ffffff !important;
-        }
-        .tabulator-row.tabulator-row-odd {
-          background-color: #f9fafb !important;
-        }
-        .tabulator-row.tabulator-selected {
-          background-color: #e0f2fe !important;
-        }
-        .tabulator-row:hover {
-          background-color: #f0f9ff !important;
-        }
-        .tabulator-cell {
-          border-right: none !important;
-          padding: 12px 8px !important;
-        }
-        .tabulator-footer {
-          background-color: #f9fafb !important;
-          border-top: 1px solid #e5e7eb !important;
-          padding: 8px !important;
-        }
-        .tabulator-footer .tabulator-paginator {
-          padding: 4px 0 !important;
-        }
-        .tabulator-footer .tabulator-page {
-          margin: 0 2px !important;
-          border-radius: 4px !important;
-          border: 1px solid #d1d5db !important;
-          background: white !important;
-        }
-        .tabulator-footer .tabulator-page.active {
-          background-color: #3b82f6 !important;
-          color: white !important;
-          border-color: #3b82f6 !important;
-        }
-        .tabulator-menu {
-          border-radius: 4px !important;
-          overflow: hidden !important;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-        }
-      `;
-      document.head.appendChild(customCSS);
-
       tabulator.current = new Tabulator(tableRef.current, {
         data: data,
         layout: "fitColumns",
@@ -292,7 +235,7 @@ const Index = () => {
         dataTree: treeMode,
         dataTreeStartExpanded: true,
         dataTreeChildIndent: 15,
-        dataTreeBranchElement: "<span class='text-blue-500'>▶</span>",
+        dataTreeBranchElement: "<span class='text-primary'>▶</span>",
         // Column configuration
         columns: [...columns, ...ampColumns],
         // Summary calculation for cost
@@ -311,8 +254,17 @@ const Index = () => {
               toast.success("Component deleted");
             }
           }
-        ]
+        ],
+        // Improved table theme and appearance
+        theme: "site",
+        layout: "fitDataStretch"
       });
+
+      // Custom CSS for a modern table appearance
+      const tableElement = tableRef.current;
+      if (tableElement) {
+        tableElement.classList.add("border", "rounded-lg", "shadow-md", "overflow-hidden");
+      }
 
       // Add event listener to the select all checkbox
       document.getElementById("select-all-checkbox")?.addEventListener("change", function(e) {
@@ -354,11 +306,11 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
-          <h1 className="text-3xl font-bold mb-4 text-gray-800">Electrical Panelboard Estimation</h1>
-          <p className="text-gray-600 mb-6">
+        <div className="bg-card rounded-lg shadow-sm p-6 border">
+          <h1 className="text-3xl font-bold mb-4 text-card-foreground">Electrical Panelboard Estimation</h1>
+          <p className="text-muted-foreground mb-6">
             This estimation tool combines tree view for component hierarchy and grouping for analysis by categories,
             making it easy to manage and calculate costs for electrical panelboards.
           </p>
@@ -366,7 +318,7 @@ const Index = () => {
           <div className="mb-6 space-y-4">
             <div className="flex flex-wrap gap-4 items-center justify-between">
               <div>
-                <h3 className="font-semibold mb-2 text-gray-700">Display Mode:</h3>
+                <h3 className="font-semibold mb-2 text-card-foreground">Display Mode:</h3>
                 <div className="flex gap-2">
                   <Button
                     onClick={() => toggleDisplayMode('tree')}
@@ -385,7 +337,7 @@ const Index = () => {
             </div>
             
             <div className={!isTreeMode ? 'block' : 'opacity-50 pointer-events-none'}>
-              <h3 className="font-semibold mb-2 text-gray-700">Group By:</h3>
+              <h3 className="font-semibold mb-2 text-card-foreground">Group By:</h3>
               <div className="flex flex-wrap gap-2">
                 <Button 
                   onClick={() => toggleGroupBy("type")} 
@@ -410,11 +362,11 @@ const Index = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
-              <Button onClick={addRow} variant="outline" className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200">
+            <div className="flex flex-wrap gap-2 pt-4 border-t">
+              <Button onClick={addRow} variant="default" className="bg-green-600 hover:bg-green-700">
                 <Plus className="w-4 h-4 mr-1" /> Add Component
               </Button>
-              <Button onClick={deleteRow} variant="outline" className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200">
+              <Button onClick={deleteRow} variant="destructive">
                 <Trash className="w-4 h-4 mr-1" /> Delete Selected
               </Button>
               <div className="ml-auto flex gap-2">
@@ -428,33 +380,33 @@ const Index = () => {
             </div>
           </div>
           
-          <div ref={tableRef} className="my-4 border border-gray-100 rounded-lg overflow-hidden"></div>
+          <div ref={tableRef} className="my-4 overflow-hidden rounded-lg border"></div>
           
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <h3 className="font-bold mb-2 text-blue-800">Usage Instructions:</h3>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
+          <div className="mt-6 p-4 bg-accent rounded-lg border">
+            <h3 className="font-bold mb-2 text-accent-foreground">Usage Instructions:</h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-accent-foreground/80">
               <li className="flex items-start gap-2">
-                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Tree Mode:</strong> Visualize the hierarchical structure of panelboards and components.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Group Mode:</strong> Analyze components by type, voltage, or manufacturer with cost summaries.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Add/Delete:</strong> Add new components or delete selected ones.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Edit:</strong> Click on a cell to edit its value directly.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Select:</strong> Use checkboxes to select components for deletion or other operations.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Import/Export:</strong> Load or download data in CSV/JSON formats.</span>
               </li>
             </ul>
