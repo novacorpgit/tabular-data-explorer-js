@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
@@ -162,7 +163,7 @@ const Index = () => {
         },
         { title: "ID", field: "id", sorter: "number", headerFilter: true, width: 80 },
         { title: "Component", field: "name", sorter: "string", headerFilter: true, width: 200, editor: "input" },
-        { title: "Type", field: "type", sorter: "string", headerFilter: true, width: 120, editor: "select", editorParams: {
+        { title: "Type", field: "type", sorter: "string", headerFilter: true, width: 120, editor: "list", editorParams: {
           values: ["Panel", "Breaker", "Bus Bar", "Component"]
         }},
         { title: "Voltage", field: "voltage", sorter: "string", headerFilter: true, width: 120, editor: "input" },
@@ -212,7 +213,8 @@ const Index = () => {
 
       tabulator.current = new Tabulator(tableRef.current, {
         data: data,
-        layout: "fitColumns",
+        layout: "fitData",  // Changed from fitColumns to fitData to accommodate fitToWidth
+        columns: [...columns, ...ampColumns],
         pagination: "local",
         paginationSize: 50,
         paginationSizeSelector: [10, 25, 50, 100, true],
@@ -236,8 +238,6 @@ const Index = () => {
         dataTreeStartExpanded: true,
         dataTreeChildIndent: 15,
         dataTreeBranchElement: "<span class='text-primary'>▶</span>",
-        // Column configuration
-        columns: [...columns, ...ampColumns],
         // Summary calculation for cost
         columnCalcs: {
           cost: {
@@ -255,10 +255,23 @@ const Index = () => {
             }
           }
         ],
+        // Apply fit to width functionality
+        layoutColumnsOnNewData: true,
+        responsiveLayoutCollapseStartOpen: false,
+        autoResize: true,
         // Improved table theme and appearance
-        theme: "site",
-        layout: "fitDataStretch"
+        theme: "tabulator"  // Using default tabulator theme for a cleaner look
       });
+
+      // Make table fit to container width
+      const resizeTable = () => {
+        if (tabulator.current) {
+          tabulator.current.redraw(true);
+        }
+      };
+
+      // Add window resize handler to ensure table always fits width
+      window.addEventListener('resize', resizeTable);
 
       // Custom CSS for a modern table appearance
       const tableElement = tableRef.current;
@@ -302,6 +315,8 @@ const Index = () => {
       if (tabulator.current) {
         tabulator.current.destroy();
       }
+      // Remove the resize event listener when component unmounts
+      window.removeEventListener('resize', () => {});
     };
   }, []);
 
