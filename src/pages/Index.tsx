@@ -1,31 +1,59 @@
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 
-// Sample data for the table with tree structure
-const tableData = [
-  { id: 1, name: "John Doe", age: 25, gender: "Male", city: "New York", progress: 78, _children: [
-    { id: 11, name: "John Jr", age: 5, gender: "Male", city: "New York", progress: 45 },
-    { id: 12, name: "Jane Doe", age: 3, gender: "Female", city: "New York", progress: 35 },
-  ]},
-  { id: 2, name: "Jane Smith", age: 32, gender: "Female", city: "London", progress: 92, _children: [
-    { id: 21, name: "James Smith", age: 10, gender: "Male", city: "London", progress: 80 },
-  ]},
-  { id: 3, name: "Michael Johnson", age: 41, gender: "Male", city: "Paris", progress: 64 },
-  { id: 4, name: "Sarah Williams", age: 29, gender: "Female", city: "Tokyo", progress: 85, _children: [
-    { id: 41, name: "Sophia Williams", age: 8, gender: "Female", city: "Tokyo", progress: 50 },
-    { id: 42, name: "Thomas Williams", age: 6, gender: "Male", city: "Tokyo", progress: 60 },
-  ]},
-  { id: 5, name: "David Brown", age: 37, gender: "Male", city: "Sydney", progress: 71 },
-  { id: 6, name: "Emily Davis", age: 24, gender: "Female", city: "Berlin", progress: 96 },
-  { id: 7, name: "Robert Miller", age: 45, gender: "Male", city: "Toronto", progress: 58 },
-  { id: 8, name: "Jennifer Wilson", age: 31, gender: "Female", city: "Madrid", progress: 82 },
+// Sample data for electrical panelboard estimation with tree structure
+const panelboardData = [
+  { 
+    id: 1, 
+    name: "Main Distribution Panel", 
+    type: "Panel", 
+    voltage: "480V", 
+    cost: 1200, 
+    manufacturer: "Siemens",
+    _children: [
+      { id: 101, name: "Main Breaker", type: "Breaker", voltage: "480V", ampRating: 400, cost: 350, manufacturer: "Siemens" },
+      { id: 102, name: "Copper Bus Bar", type: "Bus Bar", voltage: "480V", rating: "600A", cost: 180, manufacturer: "Generic" },
+      { id: 103, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 100, cost: 120, manufacturer: "Siemens" },
+      { id: 104, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 60, cost: 85, manufacturer: "Siemens" }
+    ]
+  },
+  {
+    id: 2,
+    name: "Lighting Panel LP-1", 
+    type: "Panel", 
+    voltage: "208V", 
+    cost: 850, 
+    manufacturer: "Square D",
+    _children: [
+      { id: 201, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 225, cost: 250, manufacturer: "Square D" },
+      { id: 202, name: "Aluminum Bus Bar", type: "Bus Bar", voltage: "208V", rating: "225A", cost: 120, manufacturer: "Generic" },
+      { id: 203, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, manufacturer: "Square D" },
+      { id: 204, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, manufacturer: "Square D" }
+    ]
+  },
+  {
+    id: 3,
+    name: "Power Panel PP-1", 
+    type: "Panel", 
+    voltage: "208V", 
+    cost: 920, 
+    manufacturer: "Eaton",
+    _children: [
+      { id: 301, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 200, cost: 230, manufacturer: "Eaton" },
+      { id: 302, name: "Copper Bus Bar", type: "Bus Bar", voltage: "208V", rating: "250A", cost: 150, manufacturer: "Generic" },
+      { id: 303, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 50, cost: 65, manufacturer: "Eaton" },
+      { id: 304, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 30, cost: 45, manufacturer: "Eaton" }
+    ]
+  }
 ];
 
 const Index = () => {
   const tableRef = useRef<HTMLDivElement>(null);
   const tabulator = useRef<Tabulator | null>(null);
+  const [isTreeMode, setIsTreeMode] = useState(true);
+  const [currentGroupField, setCurrentGroupField] = useState<string>("type");
 
   // Function to handle group toggle event
   const toggleGroupBy = (field: string) => {
@@ -34,96 +62,121 @@ const Index = () => {
       const currentGroups = tabulator.current.getGroups();
       if (currentGroups.length > 0 && currentGroups[0].getField() === field) {
         tabulator.current.setGroupBy("");
+        setCurrentGroupField("");
       } else {
         // Otherwise, set grouping by the selected field
         tabulator.current.setGroupBy(field);
+        setCurrentGroupField(field);
       }
     }
   };
 
-  // Function to toggle tree mode
-  const toggleTreeMode = (enabled: boolean) => {
+  // Function to calculate group totals for cost
+  const calculatedCostTotal = (values: number[]) => {
+    let total = 0;
+    values.forEach((value) => {
+      total += value;
+    });
+    return total.toFixed(2);
+  };
+
+  // Function to toggle display mode (tree or group)
+  const toggleDisplayMode = (mode: 'tree' | 'group') => {
+    setIsTreeMode(mode === 'tree');
+    initializeTable(mode === 'tree');
+  };
+
+  // Function to initialize or reinitialize the table
+  const initializeTable = (treeMode: boolean = true) => {
     if (tabulator.current) {
       tabulator.current.destroy();
-      
-      if (tableRef.current) {
-        // Re-initialize Tabulator with or without tree mode
-        tabulator.current = new Tabulator(tableRef.current, {
-          data: tableData,
-          layout: "fitColumns",
-          pagination: "local",
-          paginationSize: 5,
-          paginationSizeSelector: [5, 10, 20, 50],
-          movableColumns: true,
-          responsiveLayout: "collapse",
-          // Group configuration (only when tree mode is off)
-          groupBy: !enabled ? "gender" : "",
-          groupHeader: function(value, count) {
-            return value + " <span class='text-gray-500'>(" + count + " items)</span>";
-          },
-          // Tree configuration (only when tree mode is on)
-          dataTree: enabled,
-          dataTreeStartExpanded: true,
-          dataTreeChildIndent: 15,
-          dataTreeBranchElement: "<span class='text-gray-500'>▶</span>",
-          columns: [
-            { title: "ID", field: "id", sorter: "number", headerFilter: true },
-            { title: "Name", field: "name", sorter: "string", headerFilter: true },
-            { title: "Age", field: "age", sorter: "number", headerFilter: "number" },
-            { title: "Gender", field: "gender", sorter: "string", headerFilter: true },
-            { title: "City", field: "city", sorter: "string", headerFilter: true },
-            {
-              title: "Progress",
-              field: "progress",
-              sorter: "number",
-              formatter: "progress",
-              formatterParams: {
-                color: ["#eb4034", "#f7b731", "#4CAF50"],
-                legend: true
-              }
-            },
-          ],
-        });
-      }
+    }
+    
+    if (tableRef.current) {
+      // Configure columns based on the electrical panelboard data
+      const columns = [
+        { title: "ID", field: "id", sorter: "number", headerFilter: true, width: 80 },
+        { title: "Component", field: "name", sorter: "string", headerFilter: true, width: 200 },
+        { title: "Type", field: "type", sorter: "string", headerFilter: true, width: 120 },
+        { title: "Voltage", field: "voltage", sorter: "string", headerFilter: true, width: 120 },
+        { title: "Manufacturer", field: "manufacturer", sorter: "string", headerFilter: true, width: 150 },
+        { 
+          title: "Cost ($)", 
+          field: "cost", 
+          sorter: "number", 
+          headerFilter: "number", 
+          width: 120,
+          formatter: "money",
+          formatterParams: {
+            precision: 2,
+            symbol: "$"
+          }
+        }
+      ];
+
+      // Add additional columns based on equipment type
+      const ampColumns = [
+        { 
+          title: "Amp Rating", 
+          field: "ampRating", 
+          sorter: "number", 
+          headerFilter: true, 
+          width: 120,
+          formatter: function(cell: any) {
+            const value = cell.getValue();
+            return value ? value + "A" : "";
+          }
+        },
+        {
+          title: "Rating",
+          field: "rating",
+          sorter: "string",
+          headerFilter: true,
+          width: 120
+        }
+      ];
+
+      tabulator.current = new Tabulator(tableRef.current, {
+        data: panelboardData,
+        layout: "fitColumns",
+        pagination: "local",
+        paginationSize: 10,
+        paginationSizeSelector: [5, 10, 20, 50],
+        movableColumns: true,
+        responsiveLayout: "collapse",
+        // Group configuration (only when tree mode is off)
+        groupBy: !treeMode ? currentGroupField : "",
+        groupHeader: function(value, count, data) {
+          // Calculate total cost for the group
+          let totalCost = 0;
+          data.forEach((item) => {
+            totalCost += item.cost || 0;
+          });
+          return value + " <span class='text-gray-500'>(" + count + " items, Total: $" + totalCost.toFixed(2) + ")</span>";
+        },
+        groupToggleElement: "header",
+        groupStartOpen: true,
+        // Tree configuration (only when tree mode is on)
+        dataTree: treeMode,
+        dataTreeStartExpanded: true,
+        dataTreeChildIndent: 15,
+        dataTreeBranchElement: "<span class='text-blue-500'>▶</span>",
+        // Column configuration
+        columns: [...columns, ...ampColumns],
+        // Summary calculation for cost
+        columnCalcs: {
+          cost: {
+            type: "sum",
+            precision: 2
+          }
+        }
+      });
     }
   };
 
   useEffect(() => {
-    if (tableRef.current) {
-      // Initialize Tabulator
-      tabulator.current = new Tabulator(tableRef.current, {
-        data: tableData,
-        layout: "fitColumns",
-        pagination: "local",
-        paginationSize: 5,
-        paginationSizeSelector: [5, 10, 20, 50],
-        movableColumns: true,
-        responsiveLayout: "collapse",
-        // Group configuration
-        groupBy: "gender", // Initial grouping by gender
-        groupHeader: function(value, count) {
-          // Custom header for groups
-          return value + " <span class='text-gray-500'>(" + count + " items)</span>";
-        },
-        columns: [
-          { title: "ID", field: "id", sorter: "number", headerFilter: true },
-          { title: "Name", field: "name", sorter: "string", headerFilter: true },
-          { title: "Age", field: "age", sorter: "number", headerFilter: "number" },
-          { title: "Gender", field: "gender", sorter: "string", headerFilter: true },
-          { title: "City", field: "city", sorter: "string", headerFilter: true },
-          {
-            title: "Progress",
-            field: "progress",
-            sorter: "number",
-            formatter: "progress",
-            formatterParams: {
-              color: ["#eb4034", "#f7b731", "#4CAF50"],
-              legend: true
-            }
-          },
-        ],
-      });
-    }
+    // Initialize table when component mounts
+    initializeTable(isTreeMode);
 
     // Clean up when component unmounts
     return () => {
@@ -137,10 +190,10 @@ const Index = () => {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold mb-6">Interactive Data Table</h1>
+          <h1 className="text-3xl font-bold mb-6">Electrical Panelboard Estimation</h1>
           <p className="text-gray-600 mb-4">
-            This is an example of a Tabulator table with sorting, filtering, pagination, grouping, and tree view.
-            Try clicking on column headers to sort, using the filter inputs, or changing the number of rows displayed.
+            This example demonstrates using Tabulator for electrical panelboard estimation, combining tree view for component hierarchy 
+            and grouping for cost analysis by different categories.
           </p>
           
           <div className="mb-4 space-y-4">
@@ -148,30 +201,35 @@ const Index = () => {
               <h3 className="font-semibold mb-1">Display Mode:</h3>
               <div className="flex gap-2">
                 <button
-                  onClick={() => toggleTreeMode(true)}
-                  className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600">
-                  Tree Mode
+                  onClick={() => toggleDisplayMode('tree')}
+                  className={`px-3 py-1 ${isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
+                  Tree Mode (Hierarchy)
                 </button>
                 <button
-                  onClick={() => toggleTreeMode(false)}
-                  className="px-3 py-1 bg-purple-500 text-white rounded hover:bg-purple-600">
-                  Group Mode
+                  onClick={() => toggleDisplayMode('group')}
+                  className={`px-3 py-1 ${!isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
+                  Group Mode (Analysis)
                 </button>
               </div>
             </div>
             
-            <div>
+            <div className={!isTreeMode ? 'block' : 'opacity-50 pointer-events-none'}>
               <h3 className="font-semibold mb-1">Group By:</h3>
               <div className="flex flex-wrap gap-2">
                 <button 
-                  onClick={() => toggleGroupBy("gender")} 
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                  Gender
+                  onClick={() => toggleGroupBy("type")} 
+                  className={`px-3 py-1 ${currentGroupField === 'type' ? 'bg-purple-600' : 'bg-purple-500'} text-white rounded hover:bg-purple-600`}>
+                  Component Type
                 </button>
                 <button 
-                  onClick={() => toggleGroupBy("city")} 
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                  City
+                  onClick={() => toggleGroupBy("voltage")} 
+                  className={`px-3 py-1 ${currentGroupField === 'voltage' ? 'bg-purple-600' : 'bg-purple-500'} text-white rounded hover:bg-purple-600`}>
+                  Voltage Rating
+                </button>
+                <button 
+                  onClick={() => toggleGroupBy("manufacturer")} 
+                  className={`px-3 py-1 ${currentGroupField === 'manufacturer' ? 'bg-purple-600' : 'bg-purple-500'} text-white rounded hover:bg-purple-600`}>
+                  Manufacturer
                 </button>
                 <button 
                   onClick={() => toggleGroupBy("")} 
@@ -183,6 +241,16 @@ const Index = () => {
           </div>
           
           <div ref={tableRef} className="mt-4"></div>
+          
+          <div className="mt-4 p-3 bg-gray-100 rounded">
+            <h3 className="font-bold mb-2">Usage Instructions:</h3>
+            <ul className="list-disc pl-5 space-y-1 text-sm">
+              <li><strong>Tree Mode:</strong> Visualize the hierarchical structure of panelboards and their components.</li>
+              <li><strong>Group Mode:</strong> Analyze components grouped by type, voltage, or manufacturer with cost summaries.</li>
+              <li>Click column headers to sort, or use the filters above each column to narrow down results.</li>
+              <li>Use pagination controls below the table to navigate through the data.</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
