@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+
+import React, { useState, useCallback, useRef, useEffect, CSSProperties } from 'react';
 import ReactFlow, { 
   Background, 
   Controls, 
@@ -228,7 +229,7 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
 
 // Helper component to render snap lines
 const SnapLine = ({ line }) => {
-  const style = {
+  const style: CSSProperties = {
     position: 'absolute',
     backgroundColor: '#ff0072',
     zIndex: 999,
