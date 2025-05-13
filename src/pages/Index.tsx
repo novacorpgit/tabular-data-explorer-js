@@ -1,10 +1,12 @@
+
 import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import FileLoader from "@/components/FileLoader";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, Plus, Trash } from "lucide-react";
+import { Download, Filter, Plus, Trash, Layout } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import {
   Select,
   SelectContent,
@@ -500,7 +502,14 @@ const Index = () => {
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="bg-card rounded-lg shadow-sm p-6 border">
-          <h1 className="text-3xl font-bold mb-4 text-card-foreground">Electrical Panelboard Estimation</h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-card-foreground">Electrical Panelboard Estimation</h1>
+            <Button asChild variant="outline">
+              <Link to="/designer">
+                <Layout className="w-4 h-4 mr-1" /> Panel Designer
+              </Link>
+            </Button>
+          </div>
           <p className="text-muted-foreground mb-6">
             This estimation tool combines tree view for component hierarchy and grouping for analysis by categories,
             making it easy to manage and calculate costs for electrical panelboards.
