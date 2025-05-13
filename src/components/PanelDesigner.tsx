@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, { 
   Background, 
@@ -13,7 +12,8 @@ import ReactFlow, {
   XYPosition,
   OnConnectStartParams,
   NodeTypes,
-  Node
+  Node,
+  SnapGrid
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ComponentLibrary, { Component } from './ComponentLibrary';
@@ -124,6 +124,144 @@ const getIntersections = (nodes: Node[]) => {
   return intersections;
 };
 
+// Helper to calculate snap lines between nodes
+const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
+  // Skip if no dragging node
+  if (!draggingNode) return [];
+  
+  const snapLines = [];
+  const draggingNodeWidth = draggingNode.data.dimensions?.width || 80;
+  const draggingNodeHeight = draggingNode.data.dimensions?.height || 80;
+
+  // Calculate center, left, right, top, bottom of dragging node
+  const draggingCenterX = draggingNode.position.x + draggingNodeWidth / 2;
+  const draggingCenterY = draggingNode.position.y + draggingNodeHeight / 2;
+  const draggingLeft = draggingNode.position.x;
+  const draggingRight = draggingNode.position.x + draggingNodeWidth;
+  const draggingTop = draggingNode.position.y;
+  const draggingBottom = draggingNode.position.y + draggingNodeHeight;
+
+  // Compare with all other nodes
+  nodes.forEach(node => {
+    if (node.id === draggingNode.id || node.type === 'enclosure') return;
+    
+    const nodeWidth = node.data.dimensions?.width || 80;
+    const nodeHeight = node.data.dimensions?.height || 80;
+    
+    // Calculate center, left, right, top, bottom of other node
+    const nodeCenterX = node.position.x + nodeWidth / 2;
+    const nodeCenterY = node.position.y + nodeHeight / 2;
+    const nodeLeft = node.position.x;
+    const nodeRight = node.position.x + nodeWidth;
+    const nodeTop = node.position.y;
+    const nodeBottom = node.position.y + nodeHeight;
+
+    // Horizontal center alignment
+    if (Math.abs(draggingCenterX - nodeCenterX) < 5) {
+      snapLines.push({
+        id: `center-x-${node.id}`,
+        type: 'horizontal',
+        position: nodeCenterX,
+        from: Math.min(draggingTop, nodeTop) - 20,
+        to: Math.max(draggingBottom, nodeBottom) + 20
+      });
+    }
+
+    // Vertical center alignment
+    if (Math.abs(draggingCenterY - nodeCenterY) < 5) {
+      snapLines.push({
+        id: `center-y-${node.id}`,
+        type: 'vertical',
+        position: nodeCenterY,
+        from: Math.min(draggingLeft, nodeLeft) - 20,
+        to: Math.max(draggingRight, nodeRight) + 20
+      });
+    }
+
+    // Left alignment
+    if (Math.abs(draggingLeft - nodeLeft) < 5) {
+      snapLines.push({
+        id: `left-${node.id}`,
+        type: 'vertical',
+        position: nodeLeft,
+        from: Math.min(draggingTop, nodeTop) - 20,
+        to: Math.max(draggingBottom, nodeBottom) + 20
+      });
+    }
+
+    // Right alignment
+    if (Math.abs(draggingRight - nodeRight) < 5) {
+      snapLines.push({
+        id: `right-${node.id}`,
+        type: 'vertical',
+        position: nodeRight,
+        from: Math.min(draggingTop, nodeTop) - 20,
+        to: Math.max(draggingBottom, nodeBottom) + 20
+      });
+    }
+
+    // Top alignment
+    if (Math.abs(draggingTop - nodeTop) < 5) {
+      snapLines.push({
+        id: `top-${node.id}`,
+        type: 'horizontal',
+        position: nodeTop,
+        from: Math.min(draggingLeft, nodeLeft) - 20,
+        to: Math.max(draggingRight, nodeRight) + 20
+      });
+    }
+
+    // Bottom alignment
+    if (Math.abs(draggingBottom - nodeBottom) < 5) {
+      snapLines.push({
+        id: `bottom-${node.id}`,
+        type: 'horizontal',
+        position: nodeBottom,
+        from: Math.min(draggingLeft, nodeLeft) - 20,
+        to: Math.max(draggingRight, nodeRight) + 20
+      });
+    }
+  });
+
+  return snapLines;
+};
+
+// Helper component to render snap lines
+const SnapLine = ({ line }) => {
+  const style = {
+    position: 'absolute',
+    backgroundColor: '#ff0072',
+    zIndex: 999,
+    pointerEvents: 'none',
+  };
+
+  if (line.type === 'horizontal') {
+    return (
+      <div
+        style={{
+          ...style,
+          height: '1px',
+          left: `${line.from}px`,
+          top: `${line.position}px`,
+          width: `${line.to - line.from}px`,
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        ...style,
+        width: '1px',
+        left: `${line.position}px`,
+        top: `${line.from}px`,
+        height: `${line.to - line.from}px`,
+      }}
+    />
+  );
+};
+
 const PanelDesigner = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
@@ -134,6 +272,8 @@ const PanelDesigner = () => {
   const [overlappingComponents, setOverlappingComponents] = useState<string[]>([]);
   const [componentsOutsideEnclosure, setComponentsOutsideEnclosure] = useState<string[]>([]);
   const [intersections, setIntersections] = useState<Array<{ id: string; intersections: Array<{ id: string; x: number; y: number }> }>>([]);
+  const [snapLines, setSnapLines] = useState<any[]>([]);
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   
   // Define node types
   const nodeTypes: NodeTypes = {
@@ -273,8 +413,27 @@ const PanelDesigner = () => {
     checkComponentPositions();
   }, [nodes, checkComponentPositions]);
 
+  // Handle node drag start
+  const onNodeDragStart = useCallback((event: any, node: Node) => {
+    if (node.type === 'component') {
+      setDraggingNodeId(node.id);
+    }
+  }, []);
+
+  // Update snap lines during drag
+  const onNodeDrag = useCallback((event: any, node: Node) => {
+    if (node.type === 'component') {
+      const lines = getSnapLines(node, nodes);
+      setSnapLines(lines);
+    }
+  }, [nodes]);
+
   // When component is moved, check if it's outside an enclosure
   const onNodeDragStop = useCallback((event: any, node: Node) => {
+    // Clear snap lines when drag ends
+    setSnapLines([]);
+    setDraggingNodeId(null);
+    
     if (node.type === 'component') {
       const insideAnyEnclosure = enclosures.some(enc => isInsideEnclosure(node, enc));
       
@@ -339,6 +498,8 @@ const PanelDesigner = () => {
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeDragStart={onNodeDragStart}
+            onNodeDrag={onNodeDrag}
             onNodeDragStop={onNodeDragStop}
             fitView
             snapToGrid
@@ -364,6 +525,11 @@ const PanelDesigner = () => {
                 </Button>
               </div>
             </Panel>
+            
+            {/* Render snap lines when dragging */}
+            {snapLines.map((line) => (
+              <SnapLine key={line.id} line={line} />
+            ))}
           </ReactFlow>
         </ReactFlowProvider>
       </div>
