@@ -345,6 +345,7 @@ const PanelDesigner = () => {
             snapGrid={[20, 20]}
             nodeTypes={nodeTypes}
             elementsSelectable={true}
+            deleteKeyCode={['Backspace', 'Delete']} // Allow deleting nodes with Backspace or Delete keys
           >
             <Background color="#aaa" gap={20} />
             <Controls />
