@@ -21,6 +21,7 @@ import ComponentLibrary, { Component } from './ComponentLibrary';
 import ResizableEnclosure from './ResizableEnclosure';
 import DraggableComponent from './DraggableComponent';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 // Helper function to check if a component is inside an enclosure
@@ -233,7 +234,7 @@ const SnapLine = ({ line }) => {
     position: 'absolute',
     backgroundColor: '#ff0072',
     zIndex: 999,
-    pointerEvents: 'none',
+    pointerEvents: 'none' as 'none',
   };
 
   if (line.type === 'horizontal') {
@@ -275,6 +276,7 @@ const PanelDesigner = () => {
   const [intersections, setIntersections] = useState<Array<{ id: string; intersections: Array<{ id: string; x: number; y: number }> }>>([]);
   const [snapLines, setSnapLines] = useState<any[]>([]);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const [errorCheckingEnabled, setErrorCheckingEnabled] = useState<boolean>(true);
   
   // Define node types
   const nodeTypes: NodeTypes = {
@@ -337,31 +339,58 @@ const PanelDesigner = () => {
         zIndex: 1 // Ensure components are on top of enclosures
       };
 
-      // Check if the component is being dropped inside an enclosure
-      const insideAnyEnclosure = enclosures.some(enc => 
-        isInsideEnclosure({...newNode, position: position} as Node, enc)
-      );
+      // Only do the enclosure check if error checking is enabled
+      if (errorCheckingEnabled) {
+        // Check if the component is being dropped inside an enclosure
+        const insideAnyEnclosure = enclosures.some(enc => 
+          isInsideEnclosure({...newNode, position: position} as Node, enc)
+        );
 
-      if (!insideAnyEnclosure && enclosures.length > 0) {
-        toast.error('Components must be placed inside an enclosure!');
-        // Try to position the component inside the first enclosure
-        const firstEnclosure = enclosures[0];
-        newNode.position = {
-          x: firstEnclosure.position.x + 20,
-          y: firstEnclosure.position.y + 50
-        };
-      } else if (enclosures.length === 0) {
-        toast.error('Please add an enclosure first before adding components!');
-        return;
+        if (!insideAnyEnclosure && enclosures.length > 0) {
+          toast.error('Components must be placed inside an enclosure!');
+          // Try to position the component inside the first enclosure
+          const firstEnclosure = enclosures[0];
+          newNode.position = {
+            x: firstEnclosure.position.x + 20,
+            y: firstEnclosure.position.y + 50
+          };
+        } else if (enclosures.length === 0) {
+          toast.error('Please add an enclosure first before adding components!');
+          return;
+        }
       }
 
       setNodes((nds) => nds.concat(newNode));
     },
-    [reactFlowInstance, setNodes, enclosures]
+    [reactFlowInstance, setNodes, enclosures, errorCheckingEnabled]
   );
 
   // Function to check component positions and overlaps
   const checkComponentPositions = useCallback(() => {
+    // Skip checking if error checking is disabled
+    if (!errorCheckingEnabled) {
+      setComponentsOutsideEnclosure([]);
+      setOverlappingComponents([]);
+      setIntersections([]);
+      // Clear visual indicators on nodes
+      setNodes(prevNodes => 
+        prevNodes.map(node => {
+          if (node.type !== 'component') return node;
+          
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              isOutsideEnclosure: false,
+              isOverlapping: false,
+              intersections: []
+            }
+          };
+        })
+      );
+      return;
+    }
+    
     const componentNodes = nodes.filter(node => node.type === 'component');
     const enclosureNodes = nodes.filter(node => node.type === 'enclosure');
     
@@ -407,7 +436,7 @@ const PanelDesigner = () => {
       })
     );
     
-  }, [nodes, setNodes]);
+  }, [nodes, setNodes, errorCheckingEnabled]);
 
   // Run checks when nodes change
   useEffect(() => {
@@ -435,7 +464,7 @@ const PanelDesigner = () => {
     setSnapLines([]);
     setDraggingNodeId(null);
     
-    if (node.type === 'component') {
+    if (node.type === 'component' && errorCheckingEnabled) {
       const insideAnyEnclosure = enclosures.some(enc => isInsideEnclosure(node, enc));
       
       if (!insideAnyEnclosure) {
@@ -481,7 +510,16 @@ const PanelDesigner = () => {
         }
       }
     }
-  }, [enclosures, setNodes]);
+  }, [enclosures, setNodes, errorCheckingEnabled]);
+
+  const toggleErrorChecking = () => {
+    setErrorCheckingEnabled(!errorCheckingEnabled);
+    if (!errorCheckingEnabled) {
+      toast.info('Error checking turned ON');
+    } else {
+      toast.info('Error checking turned OFF');
+    }
+  };
 
   return (
     <div className="w-full h-[calc(100vh-4rem)] flex">
@@ -524,6 +562,14 @@ const PanelDesigner = () => {
                 >
                   {showDimensions ? "Hide" : "Show"} Dimensions
                 </Button>
+                <div className="flex items-center justify-between rounded-lg border p-2">
+                  <div className="text-sm font-medium">Error Checking</div>
+                  <Switch 
+                    checked={errorCheckingEnabled} 
+                    onCheckedChange={toggleErrorChecking} 
+                    aria-label="Toggle error checking"
+                  />
+                </div>
               </div>
             </Panel>
             
