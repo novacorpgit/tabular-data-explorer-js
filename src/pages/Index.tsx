@@ -20,13 +20,15 @@ const panelboardData = [
     name: "Main Distribution Panel", 
     type: "Panel", 
     voltage: "480V", 
-    cost: 1200, 
+    cost: 1200,
+    quantity: 1,
+    total: 1200, 
     manufacturer: "Siemens",
     _children: [
-      { id: 101, name: "Main Breaker", type: "Breaker", voltage: "480V", ampRating: 400, cost: 350, manufacturer: "Siemens" },
-      { id: 102, name: "Copper Bus Bar", type: "Bus Bar", voltage: "480V", rating: "600A", cost: 180, manufacturer: "Generic" },
-      { id: 103, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 100, cost: 120, manufacturer: "Siemens" },
-      { id: 104, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 60, cost: 85, manufacturer: "Siemens" }
+      { id: 101, name: "Main Breaker", type: "Breaker", voltage: "480V", ampRating: 400, cost: 350, quantity: 1, total: 350, manufacturer: "Siemens" },
+      { id: 102, name: "Copper Bus Bar", type: "Bus Bar", voltage: "480V", rating: "600A", cost: 180, quantity: 1, total: 180, manufacturer: "Generic" },
+      { id: 103, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 100, cost: 120, quantity: 1, total: 120, manufacturer: "Siemens" },
+      { id: 104, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 60, cost: 85, quantity: 1, total: 85, manufacturer: "Siemens" }
     ]
   },
   {
@@ -34,13 +36,15 @@ const panelboardData = [
     name: "Lighting Panel LP-1", 
     type: "Panel", 
     voltage: "208V", 
-    cost: 850, 
+    cost: 850,
+    quantity: 1,
+    total: 850, 
     manufacturer: "Square D",
     _children: [
-      { id: 201, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 225, cost: 250, manufacturer: "Square D" },
-      { id: 202, name: "Aluminum Bus Bar", type: "Bus Bar", voltage: "208V", rating: "225A", cost: 120, manufacturer: "Generic" },
-      { id: 203, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, manufacturer: "Square D" },
-      { id: 204, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, manufacturer: "Square D" }
+      { id: 201, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 225, cost: 250, quantity: 1, total: 250, manufacturer: "Square D" },
+      { id: 202, name: "Aluminum Bus Bar", type: "Bus Bar", voltage: "208V", rating: "225A", cost: 120, quantity: 1, total: 120, manufacturer: "Generic" },
+      { id: 203, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, quantity: 1, total: 25, manufacturer: "Square D" },
+      { id: 204, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, quantity: 1, total: 25, manufacturer: "Square D" }
     ]
   },
   {
@@ -48,13 +52,15 @@ const panelboardData = [
     name: "Power Panel PP-1", 
     type: "Panel", 
     voltage: "208V", 
-    cost: 920, 
+    cost: 920,
+    quantity: 1,
+    total: 920, 
     manufacturer: "Eaton",
     _children: [
-      { id: 301, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 200, cost: 230, manufacturer: "Eaton" },
-      { id: 302, name: "Copper Bus Bar", type: "Bus Bar", voltage: "208V", rating: "250A", cost: 150, manufacturer: "Generic" },
-      { id: 303, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 50, cost: 65, manufacturer: "Eaton" },
-      { id: 304, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 30, cost: 45, manufacturer: "Eaton" }
+      { id: 301, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 200, cost: 230, quantity: 1, total: 230, manufacturer: "Eaton" },
+      { id: 302, name: "Copper Bus Bar", type: "Bus Bar", voltage: "208V", rating: "250A", cost: 150, quantity: 1, total: 150, manufacturer: "Generic" },
+      { id: 303, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 50, cost: 65, quantity: 1, total: 65, manufacturer: "Eaton" },
+      { id: 304, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 30, cost: 45, quantity: 1, total: 45, manufacturer: "Eaton" }
     ]
   }
 ];
@@ -135,9 +141,31 @@ const Index = () => {
 
   // Function to handle data loading from file
   const handleDataLoaded = (data: any[]) => {
-    setTableData(data);
+    // Add quantity and total fields if they don't exist
+    const processedData = data.map(item => {
+      const processItem = (item: any) => {
+        // If item doesn't have quantity, add it with default value 1
+        if (!item.hasOwnProperty('quantity')) {
+          item.quantity = 1;
+        }
+        
+        // Calculate total based on cost and quantity
+        item.total = item.cost * item.quantity;
+        
+        // Process children recursively
+        if (item._children && Array.isArray(item._children)) {
+          item._children = item._children.map(child => processItem(child));
+        }
+        
+        return item;
+      };
+      
+      return processItem({...item});
+    });
+    
+    setTableData(processedData);
     // Reinitialize table with new data
-    initializeTable(isTreeMode, data);
+    initializeTable(isTreeMode, processedData);
     toast.success("Data loaded successfully");
   };
 
@@ -191,7 +219,9 @@ const Index = () => {
         type: "Component",
         voltage: "120V",
         manufacturer: "Generic",
-        cost: 0
+        cost: 0,
+        quantity: 1,
+        total: 0
       };
       
       tabulator.current.addRow(newRow)
@@ -232,6 +262,15 @@ const Index = () => {
     }
   };
 
+  // Function to update total when cost or quantity changes
+  const updateTotal = (row: any) => {
+    const cost = parseFloat(row.getData().cost) || 0;
+    const quantity = parseInt(row.getData().quantity) || 0;
+    const total = cost * quantity;
+    
+    row.update({total: total});
+  };
+
   // Function to initialize or reinitialize the table
   const initializeTable = (treeMode: boolean = true, data: any[] = tableData) => {
     if (tabulator.current) {
@@ -261,13 +300,43 @@ const Index = () => {
           field: "cost", 
           sorter: "number", 
           headerFilter: "number", 
-          width: 120,
+          width: 100,
           formatter: "money",
           editor: "number",
           editorParams: {
             min: 0,
             step: 0.01
           },
+          formatterParams: {
+            precision: 2,
+            symbol: "$"
+          },
+          cellEdited: function(cell: any) {
+            updateTotal(cell.getRow());
+          }
+        },
+        {
+          title: "Quantity", 
+          field: "quantity", 
+          sorter: "number", 
+          headerFilter: "number", 
+          width: 80,
+          editor: "number",
+          editorParams: {
+            min: 1,
+            step: 1
+          },
+          cellEdited: function(cell: any) {
+            updateTotal(cell.getRow());
+          }
+        },
+        { 
+          title: "Total ($)", 
+          field: "total", 
+          sorter: "number", 
+          headerFilter: "number", 
+          width: 120,
+          formatter: "money",
           formatterParams: {
             precision: 2,
             symbol: "$"
@@ -315,7 +384,7 @@ const Index = () => {
           // Calculate total cost for the group
           let totalCost = 0;
           data.forEach((item) => {
-            totalCost += item.cost || 0;
+            totalCost += item.total || 0;
           });
           return value + " <span class='text-gray-500'>(" + count + " items, Total: $" + totalCost.toFixed(2) + ")</span>";
         },
@@ -326,9 +395,16 @@ const Index = () => {
         dataTreeStartExpanded: true,
         dataTreeChildIndent: 15,
         dataTreeBranchElement: "<span class='text-primary'>▶</span>",
-        // Summary calculation for cost
+        // Summary calculation for cost and total
         columnCalcs: {
           cost: {
+            type: "sum",
+            precision: 2
+          },
+          quantity: {
+            type: "sum"
+          },
+          total: {
             type: "sum",
             precision: 2
           }

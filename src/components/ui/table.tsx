@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -105,6 +106,40 @@ const TableCaption = React.forwardRef<
 ))
 TableCaption.displayName = "TableCaption"
 
+// Add a new component for quantity input cells
+const TableQuantityCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement> & { 
+    value?: number; 
+    onChange?: (value: number) => void;
+    min?: number;
+  }
+>(({ className, value = 1, onChange, min = 1, ...props }, ref) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseInt(e.target.value) || min;
+    if (onChange) onChange(newValue);
+  };
+  
+  return (
+    <td
+      ref={ref}
+      className={cn("p-2 align-middle", className)}
+      {...props}
+    >
+      <div className="flex items-center justify-center">
+        <input
+          type="number"
+          value={value}
+          onChange={handleChange}
+          min={min}
+          className="w-16 text-center p-1 border rounded"
+        />
+      </div>
+    </td>
+  );
+})
+TableQuantityCell.displayName = "TableQuantityCell"
+
 export {
   Table,
   TableHeader,
@@ -114,4 +149,5 @@ export {
   TableRow,
   TableCell,
   TableCaption,
+  TableQuantityCell
 }
