@@ -13,7 +13,8 @@ import ReactFlow, {
   OnConnectStartParams,
   NodeTypes,
   Node,
-  SnapGrid
+  SnapGrid,
+  CoordinateExtent
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import ComponentLibrary, { Component } from './ComponentLibrary';
@@ -365,6 +366,7 @@ const PanelDesigner = () => {
         return;
       }
 
+      // Create the new node with the correct type for 'extent'
       const newNode = {
         id: `${component.id}-${Math.floor(Math.random() * 10000)}`,
         type: 'component',
@@ -379,7 +381,7 @@ const PanelDesigner = () => {
           dimensions: component.dimensions,
         },
         parentId, // Set the parent ID to create the relationship
-        extent: 'parent', // Keep node within parent boundaries
+        extent: 'parent' as const, // Using 'as const' to specify it's specifically the string literal "parent"
         draggable: true,
         zIndex: 1 // Ensure components are on top of enclosures
       };
