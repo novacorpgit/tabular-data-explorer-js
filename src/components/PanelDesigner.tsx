@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect, CSSProperties } from 'react';
 import ReactFlow, { 
   Background, 
@@ -163,9 +162,9 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
       snapLines.push({
         id: `center-x-${node.id}`,
         type: 'horizontal',
-        position: nodeCenterX,
-        from: Math.min(draggingTop, nodeTop) - 20,
-        to: Math.max(draggingBottom, nodeBottom) + 20
+        position: nodeCenterY,
+        from: Math.min(draggingLeft, nodeLeft),
+        to: Math.max(draggingRight, nodeRight)
       });
     }
 
@@ -174,9 +173,9 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
       snapLines.push({
         id: `center-y-${node.id}`,
         type: 'vertical',
-        position: nodeCenterY,
-        from: Math.min(draggingLeft, nodeLeft) - 20,
-        to: Math.max(draggingRight, nodeRight) + 20
+        position: nodeCenterX,
+        from: Math.min(draggingTop, nodeTop),
+        to: Math.max(draggingBottom, nodeBottom)
       });
     }
 
@@ -186,8 +185,8 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
         id: `left-${node.id}`,
         type: 'vertical',
         position: nodeLeft,
-        from: Math.min(draggingTop, nodeTop) - 20,
-        to: Math.max(draggingBottom, nodeBottom) + 20
+        from: Math.min(draggingTop, nodeTop),
+        to: Math.max(draggingBottom, nodeBottom)
       });
     }
 
@@ -197,8 +196,8 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
         id: `right-${node.id}`,
         type: 'vertical',
         position: nodeRight,
-        from: Math.min(draggingTop, nodeTop) - 20,
-        to: Math.max(draggingBottom, nodeBottom) + 20
+        from: Math.min(draggingTop, nodeTop),
+        to: Math.max(draggingBottom, nodeBottom)
       });
     }
 
@@ -208,8 +207,8 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
         id: `top-${node.id}`,
         type: 'horizontal',
         position: nodeTop,
-        from: Math.min(draggingLeft, nodeLeft) - 20,
-        to: Math.max(draggingRight, nodeRight) + 20
+        from: Math.min(draggingLeft, nodeLeft),
+        to: Math.max(draggingRight, nodeRight)
       });
     }
 
@@ -219,8 +218,8 @@ const getSnapLines = (draggingNode: Node, nodes: Node[]) => {
         id: `bottom-${node.id}`,
         type: 'horizontal',
         position: nodeBottom,
-        from: Math.min(draggingLeft, nodeLeft) - 20,
-        to: Math.max(draggingRight, nodeRight) + 20
+        from: Math.min(draggingLeft, nodeLeft),
+        to: Math.max(draggingRight, nodeRight)
       });
     }
   });
@@ -573,10 +572,12 @@ const PanelDesigner = () => {
               </div>
             </Panel>
             
-            {/* Render snap lines when dragging */}
-            {snapLines.map((line) => (
-              <SnapLine key={line.id} line={line} />
-            ))}
+            {/* Render snap lines - position them in the flow container */}
+            <div className="react-flow__snaplines">
+              {snapLines.map((line) => (
+                <SnapLine key={line.id} line={line} />
+              ))}
+            </div>
           </ReactFlow>
         </ReactFlowProvider>
       </div>
