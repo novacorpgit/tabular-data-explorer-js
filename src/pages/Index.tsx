@@ -2,6 +2,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
+import FileLoader from "@/components/FileLoader";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 // Sample data for electrical panelboard estimation with tree structure
 const panelboardData = [
@@ -54,6 +57,14 @@ const Index = () => {
   const tabulator = useRef<Tabulator | null>(null);
   const [isTreeMode, setIsTreeMode] = useState(true);
   const [currentGroupField, setCurrentGroupField] = useState<string>("type");
+  const [tableData, setTableData] = useState(panelboardData);
+
+  // Function to handle data loading from file
+  const handleDataLoaded = (data: any[]) => {
+    setTableData(data);
+    // Reinitialize table with new data
+    initializeTable(isTreeMode, data);
+  };
 
   // Function to handle group toggle event
   const toggleGroupBy = (field: string) => {
@@ -83,11 +94,11 @@ const Index = () => {
   // Function to toggle display mode (tree or group)
   const toggleDisplayMode = (mode: 'tree' | 'group') => {
     setIsTreeMode(mode === 'tree');
-    initializeTable(mode === 'tree');
+    initializeTable(mode === 'tree', tableData);
   };
 
   // Function to initialize or reinitialize the table
-  const initializeTable = (treeMode: boolean = true) => {
+  const initializeTable = (treeMode: boolean = true, data: any[] = tableData) => {
     if (tabulator.current) {
       tabulator.current.destroy();
     }
@@ -137,7 +148,7 @@ const Index = () => {
       ];
 
       tabulator.current = new Tabulator(tableRef.current, {
-        data: panelboardData,
+        data: data,
         layout: "fitColumns",
         pagination: "local",
         paginationSize: 10,
@@ -174,9 +185,23 @@ const Index = () => {
     }
   };
 
+  // Function to export table data as CSV
+  const exportCSV = () => {
+    if (tabulator.current) {
+      tabulator.current.download("csv", "panel_data_export.csv");
+    }
+  };
+
+  // Function to export table data as JSON
+  const exportJSON = () => {
+    if (tabulator.current) {
+      tabulator.current.download("json", "panel_data_export.json");
+    }
+  };
+
   useEffect(() => {
     // Initialize table when component mounts
-    initializeTable(isTreeMode);
+    initializeTable(isTreeMode, tableData);
 
     // Clean up when component unmounts
     return () => {
@@ -197,20 +222,24 @@ const Index = () => {
           </p>
           
           <div className="mb-4 space-y-4">
-            <div>
-              <h3 className="font-semibold mb-1">Display Mode:</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => toggleDisplayMode('tree')}
-                  className={`px-3 py-1 ${isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
-                  Tree Mode (Hierarchy)
-                </button>
-                <button
-                  onClick={() => toggleDisplayMode('group')}
-                  className={`px-3 py-1 ${!isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
-                  Group Mode (Analysis)
-                </button>
+            <div className="flex flex-wrap gap-4 items-center justify-between">
+              <div>
+                <h3 className="font-semibold mb-1">Display Mode:</h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleDisplayMode('tree')}
+                    className={`px-3 py-1 ${isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
+                    Tree Mode (Hierarchy)
+                  </button>
+                  <button
+                    onClick={() => toggleDisplayMode('group')}
+                    className={`px-3 py-1 ${!isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
+                    Group Mode (Analysis)
+                  </button>
+                </div>
               </div>
+              
+              <FileLoader onDataLoaded={handleDataLoaded} />
             </div>
             
             <div className={!isTreeMode ? 'block' : 'opacity-50 pointer-events-none'}>
@@ -238,6 +267,15 @@ const Index = () => {
                 </button>
               </div>
             </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={exportCSV}>
+                <Download className="w-4 h-4 mr-1" /> Export CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportJSON}>
+                <Download className="w-4 h-4 mr-1" /> Export JSON
+              </Button>
+            </div>
           </div>
           
           <div ref={tableRef} className="mt-4"></div>
@@ -247,6 +285,8 @@ const Index = () => {
             <ul className="list-disc pl-5 space-y-1 text-sm">
               <li><strong>Tree Mode:</strong> Visualize the hierarchical structure of panelboards and their components.</li>
               <li><strong>Group Mode:</strong> Analyze components grouped by type, voltage, or manufacturer with cost summaries.</li>
+              <li><strong>Import Data:</strong> Load data from CSV or JSON files.</li>
+              <li><strong>Export Data:</strong> Download current table data as CSV or JSON.</li>
               <li>Click column headers to sort, or use the filters above each column to narrow down results.</li>
               <li>Use pagination controls below the table to navigate through the data.</li>
             </ul>
