@@ -129,6 +129,7 @@ const PanelDesigner = () => {
           image: component.image,
           dimensions: component.dimensions,
         },
+        draggable: true, // Make sure components are draggable
         zIndex: 1 // Ensure components are on top of enclosures
       };
 
@@ -137,8 +138,16 @@ const PanelDesigner = () => {
         isInsideEnclosure({...newNode, position: position} as Node, enc)
       );
 
-      if (!insideAnyEnclosure) {
+      if (!insideAnyEnclosure && enclosures.length > 0) {
         toast.error('Components must be placed inside an enclosure!');
+        // Try to position the component inside the first enclosure
+        const firstEnclosure = enclosures[0];
+        newNode.position = {
+          x: firstEnclosure.position.x + 20,
+          y: firstEnclosure.position.y + 50
+        };
+      } else if (enclosures.length === 0) {
+        toast.error('Please add an enclosure first before adding components!');
         return;
       }
 
@@ -205,16 +214,38 @@ const PanelDesigner = () => {
         toast.error('Components must be placed inside an enclosure!');
         // Move component back inside the closest enclosure
         if (enclosures.length > 0) {
-          const closestEnclosure = enclosures[0]; // Simple solution: put it in the first enclosure
+          // Find the closest enclosure
+          let closestEnclosure = enclosures[0];
+          let closestDistance = Number.MAX_VALUE;
+          
+          enclosures.forEach(enc => {
+            const dx = node.position.x - enc.position.x;
+            const dy = node.position.y - enc.position.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < closestDistance) {
+              closestDistance = distance;
+              closestEnclosure = enc;
+            }
+          });
+          
+          // Calculate a safe position within the closest enclosure
+          const safeX = Math.min(
+            Math.max(node.position.x, closestEnclosure.position.x + 10),
+            closestEnclosure.position.x + (closestEnclosure.style?.width as number) - 100
+          );
+          
+          const safeY = Math.min(
+            Math.max(node.position.y, closestEnclosure.position.y + 10),
+            closestEnclosure.position.y + (closestEnclosure.style?.height as number) - 100
+          );
+          
           setNodes(nds => 
             nds.map(n => 
               n.id === node.id 
                 ? {
                     ...n,
-                    position: {
-                      x: closestEnclosure.position.x + 50,
-                      y: closestEnclosure.position.y + 50
-                    }
+                    position: { x: safeX, y: safeY }
                   }
                 : n
             )
@@ -245,6 +276,7 @@ const PanelDesigner = () => {
             snapToGrid
             snapGrid={[20, 20]}
             nodeTypes={nodeTypes}
+            elementsSelectable={true}
           >
             <Background color="#aaa" gap={20} />
             <Controls />
