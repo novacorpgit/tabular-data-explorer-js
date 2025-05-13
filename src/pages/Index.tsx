@@ -60,8 +60,8 @@ const panelboardData = [
 ];
 
 // Extract unique panel types from data for the dropdown
-const getUniqueTypes = (data) => {
-  const types = new Set();
+const getUniqueTypes = (data: any[]): string[] => {
+  const types = new Set<string>();
   
   // Extract top-level types
   data.forEach(item => {
@@ -89,7 +89,7 @@ const Index = () => {
   const [currentGroupField, setCurrentGroupField] = useState<string>("type");
   const [tableData, setTableData] = useState(panelboardData);
   const [nextId, setNextId] = useState(1000); // For generating new row IDs
-  const [selectedType, setSelectedType] = useState("All");
+  const [selectedType, setSelectedType] = useState<string>("All");
   const typeOptions = getUniqueTypes(tableData);
   
   // Filter data based on selected type
@@ -430,7 +430,7 @@ const Index = () => {
                       <SelectValue placeholder="Select component type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {typeOptions.map((type) => (
+                      {typeOptions.map((type: string) => (
                         <SelectItem key={type} value={type}>
                           {type}
                         </SelectItem>
