@@ -4,7 +4,8 @@ import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
 import FileLoader from "@/components/FileLoader";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Plus, Trash } from "lucide-react";
+import { toast } from "sonner";
 
 // Sample data for electrical panelboard estimation with tree structure
 const panelboardData = [
@@ -58,12 +59,14 @@ const Index = () => {
   const [isTreeMode, setIsTreeMode] = useState(true);
   const [currentGroupField, setCurrentGroupField] = useState<string>("type");
   const [tableData, setTableData] = useState(panelboardData);
+  const [nextId, setNextId] = useState(1000); // For generating new row IDs
 
   // Function to handle data loading from file
   const handleDataLoaded = (data: any[]) => {
     setTableData(data);
     // Reinitialize table with new data
     initializeTable(isTreeMode, data);
+    toast.success("Data loaded successfully");
   };
 
   // Function to handle group toggle event
@@ -97,6 +100,50 @@ const Index = () => {
     initializeTable(mode === 'tree', tableData);
   };
 
+  // Function to add a new row
+  const addRow = () => {
+    if (tabulator.current) {
+      const newId = nextId;
+      setNextId(nextId + 1);
+      
+      const newRow = {
+        id: newId,
+        name: "New Component",
+        type: "Component",
+        voltage: "120V",
+        manufacturer: "Generic",
+        cost: 0
+      };
+      
+      tabulator.current.addRow(newRow)
+        .then(() => {
+          toast.success("New component added");
+        })
+        .catch(error => {
+          console.error("Error adding row:", error);
+          toast.error("Failed to add component");
+        });
+    }
+  };
+
+  // Function to delete selected rows
+  const deleteRow = () => {
+    if (tabulator.current) {
+      const selectedRows = tabulator.current.getSelectedRows();
+      
+      if (selectedRows.length === 0) {
+        toast.warning("No components selected");
+        return;
+      }
+      
+      selectedRows.forEach(row => {
+        row.delete();
+      });
+      
+      toast.success(`${selectedRows.length} component(s) deleted`);
+    }
+  };
+
   // Function to initialize or reinitialize the table
   const initializeTable = (treeMode: boolean = true, data: any[] = tableData) => {
     if (tabulator.current) {
@@ -106,11 +153,21 @@ const Index = () => {
     if (tableRef.current) {
       // Configure columns based on the electrical panelboard data
       const columns = [
+        {
+          title: '<input type="checkbox" id="select-all-checkbox">',
+          formatter: "rowSelection", 
+          titleFormatter: "rowSelection",
+          headerSort: false, 
+          hozAlign: "center", 
+          width: 70
+        },
         { title: "ID", field: "id", sorter: "number", headerFilter: true, width: 80 },
-        { title: "Component", field: "name", sorter: "string", headerFilter: true, width: 200 },
-        { title: "Type", field: "type", sorter: "string", headerFilter: true, width: 120 },
-        { title: "Voltage", field: "voltage", sorter: "string", headerFilter: true, width: 120 },
-        { title: "Manufacturer", field: "manufacturer", sorter: "string", headerFilter: true, width: 150 },
+        { title: "Component", field: "name", sorter: "string", headerFilter: true, width: 200, editor: "input" },
+        { title: "Type", field: "type", sorter: "string", headerFilter: true, width: 120, editor: "select", editorParams: {
+          values: ["Panel", "Breaker", "Bus Bar", "Component"]
+        }},
+        { title: "Voltage", field: "voltage", sorter: "string", headerFilter: true, width: 120, editor: "input" },
+        { title: "Manufacturer", field: "manufacturer", sorter: "string", headerFilter: true, width: 150, editor: "input" },
         { 
           title: "Cost ($)", 
           field: "cost", 
@@ -118,6 +175,11 @@ const Index = () => {
           headerFilter: "number", 
           width: 120,
           formatter: "money",
+          editor: "number",
+          editorParams: {
+            min: 0,
+            step: 0.01
+          },
           formatterParams: {
             precision: 2,
             symbol: "$"
@@ -133,6 +195,7 @@ const Index = () => {
           sorter: "number", 
           headerFilter: true, 
           width: 120,
+          editor: "number",
           formatter: function(cell: any) {
             const value = cell.getValue();
             return value ? value + "A" : "";
@@ -143,18 +206,76 @@ const Index = () => {
           field: "rating",
           sorter: "string",
           headerFilter: true,
-          width: 120
+          width: 120,
+          editor: "input"
         }
       ];
+
+      // Custom CSS for a more beautiful table
+      const customCSS = document.createElement('style');
+      customCSS.innerHTML = `
+        .tabulator {
+          border-radius: 8px !important;
+          overflow: hidden !important;
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+          border: none !important;
+        }
+        .tabulator-header {
+          background-color: #f9fafb !important;
+          border-bottom: 2px solid #e5e7eb !important;
+        }
+        .tabulator-row.tabulator-row-even {
+          background-color: #ffffff !important;
+        }
+        .tabulator-row.tabulator-row-odd {
+          background-color: #f9fafb !important;
+        }
+        .tabulator-row.tabulator-selected {
+          background-color: #e0f2fe !important;
+        }
+        .tabulator-row:hover {
+          background-color: #f0f9ff !important;
+        }
+        .tabulator-cell {
+          border-right: none !important;
+          padding: 12px 8px !important;
+        }
+        .tabulator-footer {
+          background-color: #f9fafb !important;
+          border-top: 1px solid #e5e7eb !important;
+          padding: 8px !important;
+        }
+        .tabulator-footer .tabulator-paginator {
+          padding: 4px 0 !important;
+        }
+        .tabulator-footer .tabulator-page {
+          margin: 0 2px !important;
+          border-radius: 4px !important;
+          border: 1px solid #d1d5db !important;
+          background: white !important;
+        }
+        .tabulator-footer .tabulator-page.active {
+          background-color: #3b82f6 !important;
+          color: white !important;
+          border-color: #3b82f6 !important;
+        }
+        .tabulator-menu {
+          border-radius: 4px !important;
+          overflow: hidden !important;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+        }
+      `;
+      document.head.appendChild(customCSS);
 
       tabulator.current = new Tabulator(tableRef.current, {
         data: data,
         layout: "fitColumns",
         pagination: "local",
-        paginationSize: 10,
-        paginationSizeSelector: [5, 10, 20, 50],
+        paginationSize: 50,
+        paginationSizeSelector: [10, 25, 50, 100, true],
         movableColumns: true,
         responsiveLayout: "collapse",
+        selectable: true,  // Enable row selection
         // Group configuration (only when tree mode is off)
         groupBy: !treeMode ? currentGroupField : "",
         groupHeader: function(value, count, data) {
@@ -180,6 +301,25 @@ const Index = () => {
             type: "sum",
             precision: 2
           }
+        },
+        // Row context menu for deleting individual rows
+        rowContextMenu: [
+          {
+            label: "Delete Row",
+            action: function(e, row) {
+              row.delete();
+              toast.success("Component deleted");
+            }
+          }
+        ]
+      });
+
+      // Add event listener to the select all checkbox
+      document.getElementById("select-all-checkbox")?.addEventListener("change", function(e) {
+        if ((e.target as HTMLInputElement).checked) {
+          tabulator.current?.selectRow();
+        } else {
+          tabulator.current?.deselectRow();
         }
       });
     }
@@ -189,6 +329,7 @@ const Index = () => {
   const exportCSV = () => {
     if (tabulator.current) {
       tabulator.current.download("csv", "panel_data_export.csv");
+      toast.success("CSV export started");
     }
   };
 
@@ -196,6 +337,7 @@ const Index = () => {
   const exportJSON = () => {
     if (tabulator.current) {
       tabulator.current.download("json", "panel_data_export.json");
+      toast.success("JSON export started");
     }
   };
 
@@ -214,28 +356,28 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h1 className="text-3xl font-bold mb-6">Electrical Panelboard Estimation</h1>
-          <p className="text-gray-600 mb-4">
-            This example demonstrates using Tabulator for electrical panelboard estimation, combining tree view for component hierarchy 
-            and grouping for cost analysis by different categories.
+        <div className="bg-white rounded-lg shadow-lg p-6 border border-gray-100">
+          <h1 className="text-3xl font-bold mb-4 text-gray-800">Electrical Panelboard Estimation</h1>
+          <p className="text-gray-600 mb-6">
+            This estimation tool combines tree view for component hierarchy and grouping for analysis by categories,
+            making it easy to manage and calculate costs for electrical panelboards.
           </p>
           
-          <div className="mb-4 space-y-4">
+          <div className="mb-6 space-y-4">
             <div className="flex flex-wrap gap-4 items-center justify-between">
               <div>
-                <h3 className="font-semibold mb-1">Display Mode:</h3>
+                <h3 className="font-semibold mb-2 text-gray-700">Display Mode:</h3>
                 <div className="flex gap-2">
-                  <button
+                  <Button
                     onClick={() => toggleDisplayMode('tree')}
-                    className={`px-3 py-1 ${isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
-                    Tree Mode (Hierarchy)
-                  </button>
-                  <button
+                    variant={isTreeMode ? "default" : "outline"}>
+                    Tree Mode
+                  </Button>
+                  <Button
                     onClick={() => toggleDisplayMode('group')}
-                    className={`px-3 py-1 ${!isTreeMode ? 'bg-blue-600' : 'bg-blue-500'} text-white rounded hover:bg-blue-600 transition-colors`}>
-                    Group Mode (Analysis)
-                  </button>
+                    variant={!isTreeMode ? "default" : "outline"}>
+                    Group Mode
+                  </Button>
                 </div>
               </div>
               
@@ -243,52 +385,78 @@ const Index = () => {
             </div>
             
             <div className={!isTreeMode ? 'block' : 'opacity-50 pointer-events-none'}>
-              <h3 className="font-semibold mb-1">Group By:</h3>
+              <h3 className="font-semibold mb-2 text-gray-700">Group By:</h3>
               <div className="flex flex-wrap gap-2">
-                <button 
+                <Button 
                   onClick={() => toggleGroupBy("type")} 
-                  className={`px-3 py-1 ${currentGroupField === 'type' ? 'bg-purple-600' : 'bg-purple-500'} text-white rounded hover:bg-purple-600`}>
+                  variant={currentGroupField === 'type' ? "default" : "outline"}>
                   Component Type
-                </button>
-                <button 
+                </Button>
+                <Button 
                   onClick={() => toggleGroupBy("voltage")} 
-                  className={`px-3 py-1 ${currentGroupField === 'voltage' ? 'bg-purple-600' : 'bg-purple-500'} text-white rounded hover:bg-purple-600`}>
+                  variant={currentGroupField === 'voltage' ? "default" : "outline"}>
                   Voltage Rating
-                </button>
-                <button 
+                </Button>
+                <Button 
                   onClick={() => toggleGroupBy("manufacturer")} 
-                  className={`px-3 py-1 ${currentGroupField === 'manufacturer' ? 'bg-purple-600' : 'bg-purple-500'} text-white rounded hover:bg-purple-600`}>
+                  variant={currentGroupField === 'manufacturer' ? "default" : "outline"}>
                   Manufacturer
-                </button>
-                <button 
+                </Button>
+                <Button 
                   onClick={() => toggleGroupBy("")} 
-                  className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600">
+                  variant="secondary">
                   Clear Grouping
-                </button>
+                </Button>
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={exportCSV}>
-                <Download className="w-4 h-4 mr-1" /> Export CSV
+            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
+              <Button onClick={addRow} variant="outline" className="bg-green-50 hover:bg-green-100 text-green-600 border-green-200">
+                <Plus className="w-4 h-4 mr-1" /> Add Component
               </Button>
-              <Button variant="outline" size="sm" onClick={exportJSON}>
-                <Download className="w-4 h-4 mr-1" /> Export JSON
+              <Button onClick={deleteRow} variant="outline" className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200">
+                <Trash className="w-4 h-4 mr-1" /> Delete Selected
               </Button>
+              <div className="ml-auto flex gap-2">
+                <Button variant="outline" size="sm" onClick={exportCSV}>
+                  <Download className="w-4 h-4 mr-1" /> Export CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={exportJSON}>
+                  <Download className="w-4 h-4 mr-1" /> Export JSON
+                </Button>
+              </div>
             </div>
           </div>
           
-          <div ref={tableRef} className="mt-4"></div>
+          <div ref={tableRef} className="my-4 border border-gray-100 rounded-lg overflow-hidden"></div>
           
-          <div className="mt-4 p-3 bg-gray-100 rounded">
-            <h3 className="font-bold mb-2">Usage Instructions:</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li><strong>Tree Mode:</strong> Visualize the hierarchical structure of panelboards and their components.</li>
-              <li><strong>Group Mode:</strong> Analyze components grouped by type, voltage, or manufacturer with cost summaries.</li>
-              <li><strong>Import Data:</strong> Load data from CSV or JSON files.</li>
-              <li><strong>Export Data:</strong> Download current table data as CSV or JSON.</li>
-              <li>Click column headers to sort, or use the filters above each column to narrow down results.</li>
-              <li>Use pagination controls below the table to navigate through the data.</li>
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+            <h3 className="font-bold mb-2 text-blue-800">Usage Instructions:</h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-blue-700">
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span><strong>Tree Mode:</strong> Visualize the hierarchical structure of panelboards and components.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span><strong>Group Mode:</strong> Analyze components by type, voltage, or manufacturer with cost summaries.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span><strong>Add/Delete:</strong> Add new components or delete selected ones.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span><strong>Edit:</strong> Click on a cell to edit its value directly.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span><strong>Select:</strong> Use checkboxes to select components for deletion or other operations.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-blue-100 p-1">•</span>
+                <span><strong>Import/Export:</strong> Load or download data in CSV/JSON formats.</span>
+              </li>
             </ul>
           </div>
         </div>
