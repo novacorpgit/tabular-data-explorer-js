@@ -17,7 +17,7 @@ import {
 // Sample data for electrical panelboard estimation with tree structure
 const panelboardData = [
   { 
-    id: 1, 
+    id: "H1", 
     name: "Main Distribution Panel", 
     type: "Panel", 
     voltage: "480V", 
@@ -26,14 +26,14 @@ const panelboardData = [
     total: 1200, 
     manufacturer: "Siemens",
     _children: [
-      { id: 101, name: "Main Breaker", type: "Breaker", voltage: "480V", ampRating: 400, cost: 350, quantity: 1, total: 350, manufacturer: "Siemens" },
-      { id: 102, name: "Copper Bus Bar", type: "Bus Bar", voltage: "480V", rating: "600A", cost: 180, quantity: 1, total: 180, manufacturer: "Generic" },
-      { id: 103, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 100, cost: 120, quantity: 1, total: 120, manufacturer: "Siemens" },
-      { id: 104, name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 60, cost: 85, quantity: 1, total: 85, manufacturer: "Siemens" }
+      { id: "H1-101", name: "Main Breaker", type: "Breaker", voltage: "480V", ampRating: 400, cost: 350, quantity: 1, total: 350, manufacturer: "Siemens" },
+      { id: "H1-102", name: "Copper Bus Bar", type: "Bus Bar", voltage: "480V", rating: "600A", cost: 180, quantity: 1, total: 180, manufacturer: "Generic" },
+      { id: "H1-103", name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 100, cost: 120, quantity: 1, total: 120, manufacturer: "Siemens" },
+      { id: "H1-104", name: "Feed Breaker", type: "Breaker", voltage: "480V", ampRating: 60, cost: 85, quantity: 1, total: 85, manufacturer: "Siemens" }
     ]
   },
   {
-    id: 2,
+    id: "H2",
     name: "Lighting Panel LP-1", 
     type: "Panel", 
     voltage: "208V", 
@@ -42,14 +42,14 @@ const panelboardData = [
     total: 850, 
     manufacturer: "Square D",
     _children: [
-      { id: 201, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 225, cost: 250, quantity: 1, total: 250, manufacturer: "Square D" },
-      { id: 202, name: "Aluminum Bus Bar", type: "Bus Bar", voltage: "208V", rating: "225A", cost: 120, quantity: 1, total: 120, manufacturer: "Generic" },
-      { id: 203, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, quantity: 1, total: 25, manufacturer: "Square D" },
-      { id: 204, name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, quantity: 1, total: 25, manufacturer: "Square D" }
+      { id: "H2-201", name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 225, cost: 250, quantity: 1, total: 250, manufacturer: "Square D" },
+      { id: "H2-202", name: "Aluminum Bus Bar", type: "Bus Bar", voltage: "208V", rating: "225A", cost: 120, quantity: 1, total: 120, manufacturer: "Generic" },
+      { id: "H2-203", name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, quantity: 1, total: 25, manufacturer: "Square D" },
+      { id: "H2-204", name: "Branch Circuit", type: "Breaker", voltage: "120V", ampRating: 20, cost: 25, quantity: 1, total: 25, manufacturer: "Square D" }
     ]
   },
   {
-    id: 3,
+    id: "H3",
     name: "Power Panel PP-1", 
     type: "Panel", 
     voltage: "208V", 
@@ -58,11 +58,42 @@ const panelboardData = [
     total: 920, 
     manufacturer: "Eaton",
     _children: [
-      { id: 301, name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 200, cost: 230, quantity: 1, total: 230, manufacturer: "Eaton" },
-      { id: 302, name: "Copper Bus Bar", type: "Bus Bar", voltage: "208V", rating: "250A", cost: 150, quantity: 1, total: 150, manufacturer: "Generic" },
-      { id: 303, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 50, cost: 65, quantity: 1, total: 65, manufacturer: "Eaton" },
-      { id: 304, name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 30, cost: 45, quantity: 1, total: 45, manufacturer: "Eaton" }
+      { id: "H3-301", name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 200, cost: 230, quantity: 1, total: 230, manufacturer: "Eaton" },
+      { id: "H3-302", name: "Copper Bus Bar", type: "Bus Bar", voltage: "208V", rating: "250A", cost: 150, quantity: 1, total: 150, manufacturer: "Generic" },
+      { id: "H3-303", name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 50, cost: 65, quantity: 1, total: 65, manufacturer: "Eaton" },
+      { id: "H3-304", name: "Feed Breaker", type: "Breaker", voltage: "208V", ampRating: 30, cost: 45, quantity: 1, total: 45, manufacturer: "Eaton" }
     ]
+  },
+  // Add new items without children
+  {
+    id: "H4",
+    name: "Emergency Panel EP-1", 
+    type: "Panel", 
+    voltage: "480V", 
+    cost: 1050,
+    quantity: 1,
+    total: 1050, 
+    manufacturer: "Schneider"
+  },
+  {
+    id: "H5",
+    name: "UPS Distribution Panel", 
+    type: "Panel", 
+    voltage: "208V", 
+    cost: 1200,
+    quantity: 1,
+    total: 1200, 
+    manufacturer: "ABB"
+  },
+  {
+    id: "H6",
+    name: "Motor Control Center", 
+    type: "Panel", 
+    voltage: "480V", 
+    cost: 3500,
+    quantity: 1,
+    total: 3500, 
+    manufacturer: "General Electric"
   }
 ];
 
