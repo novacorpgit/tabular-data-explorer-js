@@ -25,6 +25,7 @@ const panelboardData = [
     quantity: 1,
     total: 1200, 
     manufacturer: "Siemens",
+    isHeader: true,
     _children: [
       { id: "H1-101", name: "Main Breaker", type: "Breaker", voltage: "480V", ampRating: 400, cost: 350, quantity: 1, total: 350, manufacturer: "Siemens" },
       { id: "H1-102", name: "Copper Bus Bar", type: "Bus Bar", voltage: "480V", rating: "600A", cost: 180, quantity: 1, total: 180, manufacturer: "Generic" },
@@ -41,6 +42,7 @@ const panelboardData = [
     quantity: 1,
     total: 850, 
     manufacturer: "Square D",
+    isHeader: true,
     _children: [
       { id: "H2-201", name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 225, cost: 250, quantity: 1, total: 250, manufacturer: "Square D" },
       { id: "H2-202", name: "Aluminum Bus Bar", type: "Bus Bar", voltage: "208V", rating: "225A", cost: 120, quantity: 1, total: 120, manufacturer: "Generic" },
@@ -57,6 +59,7 @@ const panelboardData = [
     quantity: 1,
     total: 920, 
     manufacturer: "Eaton",
+    isHeader: true,
     _children: [
       { id: "H3-301", name: "Main Breaker", type: "Breaker", voltage: "208V", ampRating: 200, cost: 230, quantity: 1, total: 230, manufacturer: "Eaton" },
       { id: "H3-302", name: "Copper Bus Bar", type: "Bus Bar", voltage: "208V", rating: "250A", cost: 150, quantity: 1, total: 150, manufacturer: "Generic" },
@@ -73,7 +76,8 @@ const panelboardData = [
     cost: 1050,
     quantity: 1,
     total: 1050, 
-    manufacturer: "Schneider"
+    manufacturer: "Schneider",
+    isHeader: true,
   },
   {
     id: "H5",
@@ -83,7 +87,8 @@ const panelboardData = [
     cost: 1200,
     quantity: 1,
     total: 1200, 
-    manufacturer: "ABB"
+    manufacturer: "ABB",
+    isHeader: true,
   },
   {
     id: "H6",
@@ -93,7 +98,8 @@ const panelboardData = [
     cost: 3500,
     quantity: 1,
     total: 3500, 
-    manufacturer: "General Electric"
+    manufacturer: "General Electric",
+    isHeader: true,
   }
 ];
 
@@ -232,7 +238,37 @@ const Index = () => {
           step: 1
         },
         cellEdited: function(cell: any) {
-          updateTotal(cell.getRow());
+          const row = cell.getRow();
+          const rowData = row.getData();
+          updateTotal(row);
+          
+          // Check if this is a header row, update children if so
+          if (rowData.isHeader && isTreeMode && rowData._children) {
+            const newQuantity = parseInt(cell.getValue()) || 1;
+            const oldQuantity = rowData._original_quantity || 1;
+            const multiplier = newQuantity / oldQuantity;
+            
+            // Update all children quantities
+            if (multiplier !== 1) {
+              rowData._original_quantity = newQuantity;
+              
+              // Update children rows
+              const children = row.getTreeChildren();
+              if (children && children.length > 0) {
+                children.forEach((childRow: any) => {
+                  const childData = childRow.getData();
+                  const newChildQuantity = Math.max(1, Math.round(childData.quantity * multiplier));
+                  childRow.update({quantity: newChildQuantity});
+                  updateTotal(childRow);
+                });
+                
+                // Notify user
+                if (children.length > 0) {
+                  toast.info(`Updated quantities for ${children.length} child components`);
+                }
+              }
+            }
+          }
         }
       },
       { 
@@ -522,7 +558,37 @@ const Index = () => {
             step: 1
           },
           cellEdited: function(cell: any) {
-            updateTotal(cell.getRow());
+            const row = cell.getRow();
+            const rowData = row.getData();
+            updateTotal(row);
+            
+            // Check if this is a header row, update children if so
+            if (rowData.isHeader && isTreeMode && rowData._children) {
+              const newQuantity = parseInt(cell.getValue()) || 1;
+              const oldQuantity = rowData._original_quantity || 1;
+              const multiplier = newQuantity / oldQuantity;
+              
+              // Update all children quantities
+              if (multiplier !== 1) {
+                rowData._original_quantity = newQuantity;
+                
+                // Update children rows
+                const children = row.getTreeChildren();
+                if (children && children.length > 0) {
+                  children.forEach((childRow: any) => {
+                    const childData = childRow.getData();
+                    const newChildQuantity = Math.max(1, Math.round(childData.quantity * multiplier));
+                    childRow.update({quantity: newChildQuantity});
+                    updateTotal(childRow);
+                  });
+                  
+                  // Notify user
+                  if (children.length > 0) {
+                    toast.info(`Updated quantities for ${children.length} child components`);
+                  }
+                }
+              }
+            }
           }
         },
         { 
@@ -563,8 +629,45 @@ const Index = () => {
         }
       ];
 
+      // Process data to add empty rows for visual separation before headers
+      let processedData = [...data];
+      if (treeMode) {
+        // Keep the tree structure but ensure headers are marked properly
+        processedData = data.map(item => {
+          if (item.id && !item.id.includes('-')) {
+            return { ...item, isHeader: true };
+          }
+          return item;
+        });
+      } else {
+        // For flat/group mode, insert empty rows before headers
+        const newData: any[] = [];
+        data.forEach(item => {
+          // Add empty separator row before header rows
+          if (item.id && !item.id.includes('-') && item.isHeader) {
+            newData.push({ 
+              id: `sep-${item.id}`, 
+              isEmpty: true, 
+              name: "", 
+              type: "", 
+              cost: 0,
+              quantity: 0, 
+              total: 0
+            });
+          }
+          
+          // Add the actual row with header flag if appropriate
+          const isHeader = !item.id?.includes('-');
+          newData.push({
+            ...item,
+            isHeader
+          });
+        });
+        processedData = newData;
+      }
+
       tabulator.current = new Tabulator(tableRef.current, {
-        data: data,
+        data: processedData,
         layout: "fitData",  // Changed from fitColumns to fitData to accommodate fitToWidth
         columns: [...columns, ...ampColumns],
         pagination: "local",

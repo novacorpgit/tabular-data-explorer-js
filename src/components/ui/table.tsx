@@ -54,12 +54,20 @@ TableFooter.displayName = "TableFooter"
 
 const TableRow = React.forwardRef<
   HTMLTableRowElement,
-  React.HTMLAttributes<HTMLTableRowElement>
->(({ className, ...props }, ref) => (
+  React.HTMLAttributes<HTMLTableRowElement> & { 
+    isHeader?: boolean;
+    isEmpty?: boolean;
+  }
+>(({ className, isHeader, isEmpty, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      "border-b transition-colors",
+      isHeader 
+        ? "bg-primary-100 hover:bg-primary-200 font-semibold" 
+        : isEmpty 
+          ? "h-4 bg-gray-50"
+          : "hover:bg-muted/50 data-[state=selected]:bg-muted",
       className
     )}
     {...props}
@@ -106,33 +114,61 @@ const TableCaption = React.forwardRef<
 ))
 TableCaption.displayName = "TableCaption"
 
-// Add a new component for quantity input cells
+// Modified TableQuantityCell with parent relationship functionality
 const TableQuantityCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement> & { 
     value?: number; 
     onChange?: (value: number) => void;
     min?: number;
+    isHeader?: boolean;
+    parentId?: string;
+    childItems?: Array<{id: string, quantity: number}>;
+    onChildrenUpdate?: (parentId: string, multiplier: number) => void;
   }
->(({ className, value = 1, onChange, min = 1, ...props }, ref) => {
+>(({ 
+  className, 
+  value = 1, 
+  onChange, 
+  min = 1, 
+  isHeader = false,
+  parentId,
+  childItems,
+  onChildrenUpdate,
+  ...props 
+}, ref) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = parseInt(e.target.value) || min;
+    
+    // Calculate multiplier for children if this is a header
+    if (isHeader && childItems && onChildrenUpdate) {
+      const multiplier = newValue / (value || 1);
+      onChildrenUpdate(props['data-id'] as string, multiplier);
+    }
+    
     if (onChange) onChange(newValue);
   };
   
   return (
     <td
       ref={ref}
-      className={cn("p-2 align-middle", className)}
+      className={cn(
+        "p-2 align-middle", 
+        isHeader && "bg-primary-100",
+        className
+      )}
       {...props}
     >
-      <div className="flex items-center justify-center">
+      <div className={cn("flex items-center", isHeader ? "justify-center" : "justify-center")}>
         <input
           type="number"
           value={value}
           onChange={handleChange}
           min={min}
-          className="w-16 text-center p-1 border rounded"
+          className={cn(
+            "w-16 text-center p-1 border rounded",
+            isHeader && "font-semibold border-primary-300"
+          )}
         />
       </div>
     </td>

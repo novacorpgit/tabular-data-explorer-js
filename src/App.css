@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -39,4 +40,44 @@
 
 .read-the-docs {
   color: #888;
+}
+
+/* Tabulator custom styling for header and child elements */
+.tabulator-row.tabulator-tree-level-0 {
+  background-color: #f1f0fb !important;
+  font-weight: 600;
+}
+
+.tabulator-row.empty-separator {
+  height: 16px !important;
+  background-color: #f9f9f9 !important;
+  border-bottom: none !important;
+}
+
+.tabulator .tabulator-header .tabulator-col {
+  background-color: #d6bcfa;
+  border-color: #9b87f5;
+}
+
+/* Header row styling */
+.bg-blue-100 {
+  background-color: #f1f0fb !important;
+}
+
+.bg-gray-50 {
+  background-color: #f9f9f9 !important;
+}
+
+.font-semibold {
+  font-weight: 600;
+}
+
+/* Improve nested children appearance */
+.tabulator-row.tabulator-tree-level-1 {
+  background-color: #ffffff;
+}
+
+/* Add left border to child items for better visual connection */
+.tabulator-cell.tabulator-tree-level-1 {
+  border-left: 2px solid #e2e8f0;
 }
