@@ -502,6 +502,50 @@ const Index = () => {
     row.update({total: total});
   };
 
+  // Function to add empty separator row above a header
+  const addEmptySeparator = () => {
+    if (!tabulator.current || isTreeMode) {
+      toast.warning("Empty separators only work in Group Mode");
+      return;
+    }
+
+    // Get selected rows
+    const selectedRows = tabulator.current.getSelectedRows();
+    
+    if (selectedRows.length === 0) {
+      toast.warning("Select a header row first to add a separator above it");
+      return;
+    }
+
+    // Process each selected row
+    selectedRows.forEach(row => {
+      const rowData = row.getData();
+      
+      // Only add separator for header rows
+      if (rowData.isHeader) {
+        // Create empty separator row
+        const separatorRow = {
+          id: `sep-${rowData.id}`, 
+          isEmpty: true, 
+          name: "", 
+          type: "", 
+          cost: 0,
+          quantity: 0, 
+          total: 0,
+          "_attributes": {
+            "class": "empty-separator"
+          }
+        };
+        
+        // Add the separator row before the header
+        tabulator.current?.addRow(separatorRow, true, row);
+        toast.success(`Added separator above ${rowData.name}`);
+      } else {
+        toast.warning("Separators can only be added above header rows");
+      }
+    });
+  };
+
   // Function to initialize or reinitialize the table
   const initializeTable = (treeMode: boolean = true, data: any[] = tableData) => {
     if (tabulator.current) {
@@ -920,6 +964,13 @@ const Index = () => {
               <Button onClick={deleteRow} variant="destructive">
                 <Trash className="w-4 h-4 mr-1" /> Delete Selected
               </Button>
+              <Button 
+                onClick={addEmptySeparator} 
+                variant="outline" 
+                className="bg-purple-100 border-purple-300 hover:bg-purple-200 text-purple-800" 
+                disabled={isTreeMode}>
+                <Plus className="w-4 h-4 mr-1" /> Add Separator Row
+              </Button>
               <div className="ml-auto flex gap-2">
                 <Button variant="outline" size="sm" onClick={exportCSV}>
                   <Download className="w-4 h-4 mr-1" /> Export CSV
@@ -951,6 +1002,10 @@ const Index = () => {
               <li className="flex items-start gap-2">
                 <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
                 <span><strong>Add/Delete:</strong> Add new components or delete selected ones.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
+                <span><strong>Separator Rows:</strong> Select a header row and click "Add Separator Row" to insert visual spacing.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>

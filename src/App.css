@@ -111,3 +111,9 @@
 .tabulator-row .tabulator-cell .tabulator-data-tree-control {
   border-color: #9b87f5 !important;
 }
+
+/* Style for the separator row button */
+button.bg-purple-100:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
