@@ -42,74 +42,64 @@
   color: #888;
 }
 
-/* Improved Tabulator custom styling for header and child elements */
-.tabulator-row.tabulator-tree-level-0 {
+/* TanStack Table custom styling */
+.bg-blue-100, 
+[data-is-header="true"] {
   background-color: #f1f0fb !important;
+  font-weight: 600 !important;
+}
+
+.empty-separator {
+  height: 16px !important;
+  background-color: #f9f9f9 !important;
+  border-bottom: none !important;
+  pointer-events: none !important;
+}
+
+/* Custom TanStack Table styling */
+th {
+  background-color: #d6bcfa;
+  border-color: #9b87f5;
   font-weight: 600;
 }
 
-.tabulator-row.empty-separator {
-  height: 16px !important;
-  background-color: #f9f9f9 !important;
-  border-bottom: none !important;
+/* Ensure proper borders for table */
+table {
+  border-collapse: collapse;
+  width: 100%;
 }
 
-.tabulator .tabulator-header .tabulator-col {
-  background-color: #d6bcfa;
-  border-color: #9b87f5;
+th, td {
+  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
 }
 
-/* Header row styling with stronger specificity */
-.tabulator .tabulator-row.tabulator-tree-level-0 {
-  background-color: #f1f0fb !important;
-}
-
-/* Empty separator styling */
-.tabulator .tabulator-row.empty-separator {
-  height: 16px !important;
-  background-color: #f9f9f9 !important;
-  border-bottom: none !important;
-}
-
-/* Child row styling */
-.tabulator .tabulator-row.tabulator-tree-level-1 {
-  background-color: #ffffff;
-}
+/* Adjust indentation for tree node levels */
+.indent-level-0 { padding-left: 0; }
+.indent-level-1 { padding-left: 1.5rem; }
+.indent-level-2 { padding-left: 3rem; }
+.indent-level-3 { padding-left: 4.5rem; }
 
 /* Add left border to child items for better visual connection */
-.tabulator-cell.tabulator-tree-level-1 {
+.tree-level-1 td:first-child {
   border-left: 2px solid #e2e8f0;
 }
 
-/* Make headers stand out more */
-.bg-blue-100, 
-.tabulator-row.bg-blue-100,
-.tabulator-row[data-is-header="true"] {
-  background-color: #f1f0fb !important;
-  font-weight: 600 !important;
+/* Improved form controls within table */
+input.table-input,
+select.table-select {
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.25rem;
+  background-color: transparent;
 }
 
-.bg-gray-50 {
-  background-color: #f9f9f9 !important;
-}
-
-.font-semibold {
-  font-weight: 600;
-}
-
-/* Add more emphasis to header rows */
-.tabulator-row[data-is-header="true"] .tabulator-cell {
-  background-color: #f1f0fb !important;
-  font-weight: 600 !important;
-}
-
-/* Improve tree expander appearance */
-.tabulator-row .tabulator-cell .tabulator-data-tree-branch {
-  border-color: #d6bcfa !important;
-}
-
-.tabulator-row .tabulator-cell .tabulator-data-tree-control {
-  border-color: #9b87f5 !important;
+input.table-input:focus,
+select.table-select:focus {
+  outline: none;
+  border-color: #d6bcfa;
+  box-shadow: 0 0 0 1px #d6bcfa;
 }
 
 /* Style for the separator row button */
@@ -118,13 +108,29 @@ button.bg-purple-100:disabled {
   cursor: not-allowed;
 }
 
-/* Make separator rows clearly visible in Tree mode */
-.tabulator-row.empty-separator .tabulator-cell {
-  background-color: #f9f9f9 !important;
-  border-bottom: none !important;
+/* Improve tree expander appearance */
+button.expander {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Enhance separator row visibility in both modes */
-.tabulator-row.empty-separator {
-  pointer-events: none !important;
+button.expander:hover {
+  color: #6366f1;
+}
+
+/* Format monetary values */
+.money-cell {
+  text-align: right;
+  font-family: monospace;
+}
+
+/* Format numeric cells */
+.numeric-cell {
+  text-align: right;
 }
