@@ -634,8 +634,15 @@ const Index = () => {
       if (treeMode) {
         // Keep the tree structure but ensure headers are marked properly
         processedData = data.map(item => {
+          // Mark header status via data attribute for CSS targeting
           if (item.id && !item.id.includes('-')) {
-            return { ...item, isHeader: true };
+            return { 
+              ...item, 
+              isHeader: true,
+              "_attributes": {
+                "data-is-header": "true" // Add data attribute for CSS targeting
+              }
+            };
           }
           return item;
         });
@@ -652,7 +659,10 @@ const Index = () => {
               type: "", 
               cost: 0,
               quantity: 0, 
-              total: 0
+              total: 0,
+              "_attributes": {
+                "class": "empty-separator" // Add class for CSS targeting
+              }
             });
           }
           
@@ -660,7 +670,11 @@ const Index = () => {
           const isHeader = !item.id?.includes('-');
           newData.push({
             ...item,
-            isHeader
+            isHeader,
+            "_attributes": isHeader ? {
+              "data-is-header": "true",
+              "class": "bg-blue-100" // Add class for CSS targeting
+            } : {}
           });
         });
         processedData = newData;
@@ -668,7 +682,7 @@ const Index = () => {
 
       tabulator.current = new Tabulator(tableRef.current, {
         data: processedData,
-        layout: "fitData",  // Changed from fitColumns to fitData to accommodate fitToWidth
+        layout: "fitData",
         columns: [...columns, ...ampColumns],
         pagination: "local",
         paginationSize: 50,
@@ -721,6 +735,23 @@ const Index = () => {
         layoutColumnsOnNewData: true,
         responsiveLayoutCollapseStartOpen: false,
         autoResize: true,
+        // Enhance row formatting based on data properties
+        rowFormatter: function(row) {
+          const rowData = row.getData();
+          
+          // Apply styling for header rows
+          if (rowData.isHeader) {
+            row.getElement().classList.add("bg-blue-100");
+            row.getElement().classList.add("font-semibold");
+            row.getElement().setAttribute("data-is-header", "true");
+          }
+          
+          // Apply styling for empty separator rows
+          if (rowData.isEmpty) {
+            row.getElement().classList.add("empty-separator");
+            row.getElement().style.height = "16px";
+          }
+        },
         // Improved table theme and appearance
         theme: "tabulator"  // Using default tabulator theme for a cleaner look
       });

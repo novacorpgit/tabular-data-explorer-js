@@ -42,7 +42,7 @@
   color: #888;
 }
 
-/* Tabulator custom styling for header and child elements */
+/* Improved Tabulator custom styling for header and child elements */
 .tabulator-row.tabulator-tree-level-0 {
   background-color: #f1f0fb !important;
   font-weight: 600;
@@ -59,9 +59,34 @@
   border-color: #9b87f5;
 }
 
-/* Header row styling */
-.bg-blue-100 {
+/* Header row styling with stronger specificity */
+.tabulator .tabulator-row.tabulator-tree-level-0 {
   background-color: #f1f0fb !important;
+}
+
+/* Empty separator styling */
+.tabulator .tabulator-row.empty-separator {
+  height: 16px !important;
+  background-color: #f9f9f9 !important;
+  border-bottom: none !important;
+}
+
+/* Child row styling */
+.tabulator .tabulator-row.tabulator-tree-level-1 {
+  background-color: #ffffff;
+}
+
+/* Add left border to child items for better visual connection */
+.tabulator-cell.tabulator-tree-level-1 {
+  border-left: 2px solid #e2e8f0;
+}
+
+/* Make headers stand out more */
+.bg-blue-100, 
+.tabulator-row.bg-blue-100,
+.tabulator-row[data-is-header="true"] {
+  background-color: #f1f0fb !important;
+  font-weight: 600 !important;
 }
 
 .bg-gray-50 {
@@ -72,12 +97,17 @@
   font-weight: 600;
 }
 
-/* Improve nested children appearance */
-.tabulator-row.tabulator-tree-level-1 {
-  background-color: #ffffff;
+/* Add more emphasis to header rows */
+.tabulator-row[data-is-header="true"] .tabulator-cell {
+  background-color: #f1f0fb !important;
+  font-weight: 600 !important;
 }
 
-/* Add left border to child items for better visual connection */
-.tabulator-cell.tabulator-tree-level-1 {
-  border-left: 2px solid #e2e8f0;
+/* Improve tree expander appearance */
+.tabulator-row .tabulator-cell .tabulator-data-tree-branch {
+  border-color: #d6bcfa !important;
+}
+
+.tabulator-row .tabulator-cell .tabulator-data-tree-control {
+  border-color: #9b87f5 !important;
 }
