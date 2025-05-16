@@ -123,3 +123,8 @@ button.bg-purple-100:disabled {
   background-color: #f9f9f9 !important;
   border-bottom: none !important;
 }
+
+/* Enhance separator row visibility in both modes */
+.tabulator-row.empty-separator {
+  pointer-events: none !important;
+}

@@ -502,30 +502,58 @@ const Index = () => {
     row.update({total: total});
   };
 
-  // Function to add empty separator row above a header
+  // Function to add empty separator row above ALL headers
   const addEmptySeparator = () => {
     if (!tabulator.current) {
       toast.warning("Please wait for the table to load");
       return;
     }
 
-    // Get selected rows
-    const selectedRows = tabulator.current.getSelectedRows();
+    // Get all data in the table
+    const allData = tabulator.current.getData();
     
-    if (selectedRows.length === 0) {
-      toast.warning("Select a header row first to add a separator above it");
+    // Find all header rows
+    const headerRows = [];
+    
+    // First we get all header rows
+    if (isTreeMode) {
+      // In tree mode, only top-level items are headers
+      allData.forEach(row => {
+        if (row.isHeader) {
+          headerRows.push(tabulator.current?.getRow(row.id));
+        }
+      });
+    } else {
+      // In flat mode, we need to find all rows with isHeader flag
+      allData.forEach(row => {
+        if (row.isHeader) {
+          headerRows.push(tabulator.current?.getRow(row.id));
+        }
+      });
+    }
+    
+    if (headerRows.length === 0) {
+      toast.warning("No header rows found to add separators");
       return;
     }
-
-    // Process each selected row
-    selectedRows.forEach(row => {
+    
+    let separatorsAdded = 0;
+    
+    // Add separator above each header row
+    headerRows.forEach(row => {
+      if (!row) return;
+      
       const rowData = row.getData();
       
-      // Only add separator for header rows
-      if (rowData.isHeader) {
-        // Create empty separator row with the right structure for either mode
+      // Skip if there's already a separator above this header
+      const rowId = rowData.id;
+      const separatorId = `sep-${rowId}`;
+      const existingSeparator = tabulator.current?.getRow(separatorId);
+      
+      if (!existingSeparator) {
+        // Create empty separator row
         const separatorRow = {
-          id: `sep-${rowData.id}`, 
+          id: separatorId, 
           isEmpty: true, 
           name: "", 
           type: "", 
@@ -539,11 +567,15 @@ const Index = () => {
         
         // Add the separator row before the header
         tabulator.current?.addRow(separatorRow, true, row);
-        toast.success(`Added separator above ${rowData.name}`);
-      } else {
-        toast.warning("Separators can only be added above header rows");
+        separatorsAdded++;
       }
     });
+    
+    if (separatorsAdded > 0) {
+      toast.success(`Added ${separatorsAdded} separator rows`);
+    } else {
+      toast.info("All headers already have separator rows");
+    }
   };
 
   // Function to initialize or reinitialize the table
@@ -974,7 +1006,7 @@ const Index = () => {
                 variant="outline" 
                 className="bg-purple-100 border-purple-300 hover:bg-purple-200 text-purple-800" 
                 disabled={isTreeMode}>
-                <Plus className="w-4 h-4 mr-1" /> Add Separator Row
+                <Plus className="w-4 h-4 mr-1" /> Add Separator Rows
               </Button>
               <div className="ml-auto flex gap-2">
                 <Button variant="outline" size="sm" onClick={exportCSV}>
@@ -1010,7 +1042,7 @@ const Index = () => {
               </li>
               <li className="flex items-start gap-2">
                 <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
-                <span><strong>Separator Rows:</strong> Select a header row and click "Add Separator Row" to insert visual spacing.</span>
+                <span><strong>Separator Rows:</strong> Select a header row and click "Add Separator Rows" to insert visual spacing.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="inline-block rounded-full bg-accent-foreground/10 p-1">•</span>
