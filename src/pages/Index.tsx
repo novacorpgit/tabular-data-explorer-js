@@ -504,8 +504,8 @@ const Index = () => {
 
   // Function to add empty separator row above a header
   const addEmptySeparator = () => {
-    if (!tabulator.current || isTreeMode) {
-      toast.warning("Empty separators only work in Group Mode");
+    if (!tabulator.current) {
+      toast.warning("Please wait for the table to load");
       return;
     }
 
@@ -523,7 +523,7 @@ const Index = () => {
       
       // Only add separator for header rows
       if (rowData.isHeader) {
-        // Create empty separator row
+        // Create empty separator row with the right structure for either mode
         const separatorRow = {
           id: `sep-${rowData.id}`, 
           isEmpty: true, 
@@ -790,10 +790,15 @@ const Index = () => {
             row.getElement().setAttribute("data-is-header", "true");
           }
           
-          // Apply styling for empty separator rows
+          // Apply styling for empty separator rows - ensure this works in both modes
           if (rowData.isEmpty) {
             row.getElement().classList.add("empty-separator");
             row.getElement().style.height = "16px";
+            // Make separator rows more visible in Tree mode
+            if (treeMode) {
+              row.getElement().style.backgroundColor = "#f9f9f9";
+              row.getElement().style.borderBottom = "none";
+            }
           }
         },
         // Improved table theme and appearance

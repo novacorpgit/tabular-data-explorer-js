@@ -117,3 +117,9 @@ button.bg-purple-100:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Make separator rows clearly visible in Tree mode */
+.tabulator-row.empty-separator .tabulator-cell {
+  background-color: #f9f9f9 !important;
+  border-bottom: none !important;
+}
