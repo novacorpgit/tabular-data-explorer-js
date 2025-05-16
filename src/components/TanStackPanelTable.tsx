@@ -642,7 +642,6 @@ const TanStackPanelTable: React.FC<TanStackPanelTableProps> = ({ initialData, on
         );
       },
       enableColumnFilter: true,
-      cell: ({ getValue }) => `$${getValue().toFixed(2)}`,
     }),
     // Quantity column
     columnHelper.accessor('quantity', {
@@ -696,7 +695,7 @@ const TanStackPanelTable: React.FC<TanStackPanelTableProps> = ({ initialData, on
     // Total column
     columnHelper.accessor('total', {
       header: 'Total ($)',
-      cell: info => `$${info.getValue().toFixed(2)}`,
+      cell: ({ getValue }) => `$${getValue().toFixed(2)}`,
       enableColumnFilter: true,
     }),
     // Amp Rating column
