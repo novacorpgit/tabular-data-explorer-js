@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   useReactTable,
@@ -14,7 +15,7 @@ import {
   Cell,
   createColumnHelper,
 } from '@tanstack/react-table';
-import { ChevronDown, ChevronRight, Plus, Download, Filter, Trash } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Download, Filter } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -425,7 +426,8 @@ const TanStackPanelTable: React.FC<TanStackPanelTableProps> = ({ initialData, on
             type="checkbox"
             checked={
               table.getIsAllRowsSelected() ||
-              (table.getIsSomeRowsSelected() ? true : false)
+              (table.getIsSomeRowsSelected() && "indeterminate") ||
+              false
             }
             onChange={table.getToggleAllRowsSelectedHandler()}
             className="h-4 w-4 rounded border-gray-300"
@@ -642,6 +644,7 @@ const TanStackPanelTable: React.FC<TanStackPanelTableProps> = ({ initialData, on
         );
       },
       enableColumnFilter: true,
+      cell: info => `$${info.getValue().toFixed(2)}`,
     }),
     // Quantity column
     columnHelper.accessor('quantity', {
@@ -695,7 +698,7 @@ const TanStackPanelTable: React.FC<TanStackPanelTableProps> = ({ initialData, on
     // Total column
     columnHelper.accessor('total', {
       header: 'Total ($)',
-      cell: ({ getValue }) => `$${getValue().toFixed(2)}`,
+      cell: info => `$${info.getValue().toFixed(2)}`,
       enableColumnFilter: true,
     }),
     // Amp Rating column
