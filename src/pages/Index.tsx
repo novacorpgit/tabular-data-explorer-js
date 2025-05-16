@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { TabulatorFull as Tabulator } from "tabulator-tables";
 import "tabulator-tables/dist/css/tabulator.min.css";
@@ -97,7 +96,155 @@ const Index = () => {
   const [tableData, setTableData] = useState(panelboardData);
   const [nextId, setNextId] = useState(1000); // For generating new row IDs
   const [selectedType, setSelectedType] = useState<string>("All");
+  const [tableColumns, setTableColumns] = useState<any[]>([]);
   const typeOptions = getUniqueTypes(tableData);
+  
+  // Function to generate table columns based on data structure
+  const generateColumns = (headers: string[] | null = null) => {
+    // Start with selection column
+    const baseColumns = [
+      {
+        title: '<input type="checkbox" id="select-all-checkbox">',
+        formatter: "rowSelection", 
+        titleFormatter: "rowSelection",
+        headerSort: false, 
+        hozAlign: "center", 
+        width: 70
+      }
+    ];
+    
+    // If headers are provided from CSV/JSON import, use them
+    if (headers && headers.length > 0) {
+      const dynamicColumns = headers.map(header => {
+        // Check if the header might be numeric
+        const isNumeric = tableData.length > 0 && typeof tableData[0][header] === 'number';
+        
+        return {
+          title: header,
+          field: header,
+          sorter: isNumeric ? "number" : "string",
+          headerFilter: true,
+          editor: isNumeric ? "number" : "input",
+          width: 120,
+          // Special handling for cost and quantity columns
+          ...(header.toLowerCase().includes('cost') && {
+            formatter: "money",
+            formatterParams: {
+              precision: 2,
+              symbol: "$"
+            },
+            cellEdited: function(cell: any) {
+              updateTotal(cell.getRow());
+            }
+          }),
+          ...(header.toLowerCase().includes('quantity') && {
+            editor: "number",
+            editorParams: {
+              min: 1,
+              step: 1
+            },
+            cellEdited: function(cell: any) {
+              updateTotal(cell.getRow());
+            }
+          }),
+          ...(header.toLowerCase().includes('total') && {
+            formatter: "money",
+            formatterParams: {
+              precision: 2,
+              symbol: "$"
+            }
+          })
+        };
+      });
+      
+      return [...baseColumns, ...dynamicColumns];
+    }
+    
+    // Default electrical panelboard columns
+    const defaultColumns = [
+      { title: "ID", field: "id", sorter: "number", headerFilter: true, width: 80 },
+      { title: "Component", field: "name", sorter: "string", headerFilter: true, width: 200, editor: "input" },
+      { title: "Type", field: "type", sorter: "string", headerFilter: true, width: 120, editor: "list", editorParams: {
+        values: ["Panel", "Breaker", "Bus Bar", "Component"]
+      }},
+      { title: "Voltage", field: "voltage", sorter: "string", headerFilter: true, width: 120, editor: "input" },
+      { title: "Manufacturer", field: "manufacturer", sorter: "string", headerFilter: true, width: 150, editor: "input" },
+      { 
+        title: "Cost ($)", 
+        field: "cost", 
+        sorter: "number", 
+        headerFilter: "number", 
+        width: 100,
+        formatter: "money",
+        editor: "number",
+        editorParams: {
+          min: 0,
+          step: 0.01
+        },
+        formatterParams: {
+          precision: 2,
+          symbol: "$"
+        },
+        cellEdited: function(cell: any) {
+          updateTotal(cell.getRow());
+        }
+      },
+      {
+        title: "Quantity", 
+        field: "quantity", 
+        sorter: "number", 
+        headerFilter: "number", 
+        width: 80,
+        editor: "number",
+        editorParams: {
+          min: 1,
+          step: 1
+        },
+        cellEdited: function(cell: any) {
+          updateTotal(cell.getRow());
+        }
+      },
+      { 
+        title: "Total ($)", 
+        field: "total", 
+        sorter: "number", 
+        headerFilter: "number", 
+        width: 120,
+        formatter: "money",
+        formatterParams: {
+          precision: 2,
+          symbol: "$"
+        }
+      },
+      { 
+        title: "Amp Rating", 
+        field: "ampRating", 
+        sorter: "number", 
+        headerFilter: true, 
+        width: 120,
+        editor: "number",
+        formatter: function(cell: any) {
+          const value = cell.getValue();
+          return value ? value + "A" : "";
+        }
+      },
+      {
+        title: "Rating",
+        field: "rating",
+        sorter: "string",
+        headerFilter: true,
+        width: 120,
+        editor: "input"
+      }
+    ];
+    
+    return [...baseColumns, ...defaultColumns];
+  };
+  
+  // Initialize columns
+  useEffect(() => {
+    setTableColumns(generateColumns());
+  }, []);
   
   // Filter data based on selected type
   const filterDataByType = (type: string) => {
@@ -152,7 +299,9 @@ const Index = () => {
         }
         
         // Calculate total based on cost and quantity
-        item.total = item.cost * item.quantity;
+        if (item.hasOwnProperty('cost')) {
+          item.total = item.cost * item.quantity;
+        }
         
         // Process children recursively
         if (item._children && Array.isArray(item._children)) {
@@ -169,6 +318,19 @@ const Index = () => {
     // Reinitialize table with new data
     initializeTable(isTreeMode, processedData);
     toast.success("Data loaded successfully");
+  };
+
+  // Handle headers changed from the imported CSV/JSON
+  const handleHeadersChanged = (headers: string[]) => {
+    console.log("Headers changed:", headers);
+    const newColumns = generateColumns(headers);
+    setTableColumns(newColumns);
+    
+    // Reinitialize table with the new columns
+    if (tabulator.current && tableData.length > 0) {
+      tabulator.current.setColumns(newColumns);
+      toast.success("Table headers updated to match imported data");
+    }
   };
 
   // Function to handle group toggle event
@@ -496,7 +658,7 @@ const Index = () => {
       // Remove the resize event listener when component unmounts
       window.removeEventListener('resize', () => {});
     };
-  }, []);
+  }, [tableColumns]); // Added tableColumns as a dependency
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -533,7 +695,7 @@ const Index = () => {
                 </div>
               </div>
               
-              <FileLoader onDataLoaded={handleDataLoaded} />
+              <FileLoader onDataLoaded={handleDataLoaded} onHeadersChanged={handleHeadersChanged} />
             </div>
             
             {/* Panel Type Filter Dropdown */}

@@ -5,9 +5,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface FileLoaderProps {
   onDataLoaded: (data: any[]) => void;
+  onHeadersChanged?: (headers: string[]) => void; // New prop to handle header changes
 }
 
-const FileLoader: React.FC<FileLoaderProps> = ({ onDataLoaded }) => {
+const FileLoader: React.FC<FileLoaderProps> = ({ onDataLoaded, onHeadersChanged }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -59,6 +60,11 @@ const FileLoader: React.FC<FileLoaderProps> = ({ onDataLoaded }) => {
           return row;
         });
         
+        // Notify the parent component about the new headers
+        if (onHeadersChanged) {
+          onHeadersChanged(headers);
+        }
+        
         onDataLoaded(data);
         toast({
           title: "Data Loaded Successfully",
@@ -83,7 +89,15 @@ const FileLoader: React.FC<FileLoaderProps> = ({ onDataLoaded }) => {
         const text = e.target?.result as string;
         const data = JSON.parse(text);
         
-        if (Array.isArray(data)) {
+        if (Array.isArray(data) && data.length > 0) {
+          // Extract headers from the first object's keys
+          const headers = Object.keys(data[0]);
+          
+          // Notify the parent component about the new headers
+          if (onHeadersChanged) {
+            onHeadersChanged(headers);
+          }
+          
           onDataLoaded(data);
           toast({
             title: "Data Loaded Successfully",
